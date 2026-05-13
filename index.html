@@ -1,0 +1,2284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Imperva  -  Stage & Version Control Prototype</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── PROTOTYPE NAV BAR ──────────────────────────── -->
+<nav class="proto-nav">
+  <span>Screens:</span>
+  <button class="active" onclick="showScreen('s02')">02 · Prod</button>
+  <button onclick="showScreen('s03')">03 · Rules (Prod)</button>
+  <button onclick="showScreen('s03_1')">03.1 · Policies (Prod)</button>
+  <button onclick="showScreen('s04')">04 · Stage Mode</button>
+  <button onclick="showScreen('s05_1_1')">05.1.1 · Rules</button>
+  <button onclick="showScreen('s05_2')">05.2 · Policies</button>
+  <button onclick="showScreen('s05_3')">05.3 · Security Events</button>
+  <button onclick="showDiff()">07 · Diff</button>
+  <button onclick="showScreen('s07r')">07R · Diff Redesign</button>
+  <button onclick="showScreen('s07rb')">07R-B · API Abuse Task</button>
+  <button onclick="showScreen('s08')">08 · Version History</button>
+  <button onclick="showScreen('s01')">01 · Settings</button>
+  <button id="proto-collapse-btn" onclick="toggleProtoNav()" style="margin-left:auto;">✕</button>
+</nav>
+
+<!-- ════════════════════════════════════════════════
+     SCREEN 02  -  PROD (production view)
+═════════════════════════════════════════════════ -->
+<div id="s02" class="screen active">
+  <header class="top-nav black" id="nav-s02"></header>
+  <div class="page-body">
+    <aside class="sidebar" id="sidebar-s02"></aside>
+    <main class="page-content">
+      <div class="table-container" style="margin:20px;">
+        <div class="table-toolbar" style="gap:12px;">
+          <div class="table-title">Websites</div>
+          <div class="table-actions" style="margin-left:auto;">
+            <button class="btn btn-ghost">🔍 Search</button>
+            <button class="btn btn-ghost">⊟ Filter</button>
+            <button class="btn btn-ghost-sm">⊞</button>
+          </div>
+        </div>
+        <table id="websites-table-s02"></table>
+        <div class="table-pagination">
+          <span>1–7 of 1,228</span>
+          <span>Rows per page: <strong>100</strong></span>
+          <div class="page-nums"><span class="current-page">1</span><span>2</span><span>3</span><span>4</span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div><!-- /s02 -->
+
+
+<!-- ════════════════════════════════════════════════
+     SCREEN 03  -  RULES (PROD, read-only)
+═════════════════════════════════════════════════ -->
+<div id="s03" class="screen">
+  <header class="top-nav black" id="nav-s03"></header>
+  <div class="page-body">
+    <aside class="sidebar" id="sidebar-s03"></aside>
+    <main class="page-content">
+
+      <!-- Read-only info banner -->
+      <div style="display:flex;align-items:center;gap:12px;background:#EFF6FF;border-left:4px solid #3B82F6;border-radius:4px;padding:12px 16px;margin:16px 20px 0;font-size:13px;color:#1E40AF;">
+        <span style="font-size:15px;flex-shrink:0;">🔒</span>
+        <span>Rules are read-only in production. To create or edit rules, switch to Stage Mode. Changes are saved as a version and must be promoted to take effect in production.</span>
+        <button class="btn btn-primary" style="margin-left:auto;flex-shrink:0;height:32px;font-size:12px;padding:0 14px;" onclick="showScreen('s05_1_1')">Switch to Stage Mode</button>
+      </div>
+
+      <!-- ── RULES PAGE (read-only) ── -->
+      <div class="rules-page">
+
+        <!-- Tab bar -->
+        <div class="rules-tabs">
+          <button class="rules-tab active">All</button>
+          <button class="rules-tab">Redirect</button>
+          <button class="rules-tab">Rates</button>
+          <button class="rules-tab">Security</button>
+          <button class="rules-tab">Rewrite Request</button>
+          <button class="rules-tab">Forward</button>
+          <button class="rules-tab">Rewrite Response</button>
+          <button class="rules-tab">Override WAF Settings</button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="rules-toolbar">
+          <div class="rules-filter">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6.5 1A5.5 5.5 0 1 0 12 6.5 5.506 5.506 0 0 0 6.5 1zm4.457 9.043L15 14.086 14.086 15l-4.043-4.043A5.5 5.5 0 1 1 10.957 10.043z" fill="#606A73"/></svg>
+            <input type="text" placeholder="Filter by Keyword or ID" />
+          </div>
+          <button class="rules-icon-btn" title="Export">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M4 6l4 4 4-4M2 13h12" stroke="#606A73" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="btn btn-primary" style="height:36px;font-size:13px;padding:0 16px;opacity:0.5;pointer-events:none;">Add Rule</button>
+        </div>
+
+        <!-- Table -->
+        <table class="rules-table">
+          <thead>
+            <tr>
+              <th>PriorityName (ID)</th>
+              <th>Description</th>
+              <th>Hits (Last 7 days)</th>
+              <th>Status</th>
+              <th>Edit</th>
+              <th>More</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Rates group -->
+            <tr class="rules-group-row">
+              <td colspan="6">Rates</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="rules-name">Count Ruby HTTP client<br>requests in 10sec (10093129)</div>
+              </td>
+              <td class="rules-desc">If: ClientId == 747</td>
+              <td></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn" style="opacity:0.5;pointer-events:none;">&#9998;</button></td>
+              <td><button class="rules-action-btn" style="opacity:0.5;pointer-events:none;">&#8942;</button></td>
+            </tr>
+            <!-- Security group -->
+            <tr class="rules-group-row">
+              <td colspan="6">Security</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="rules-name">Block Session when reaching<br>10 requests (10093135)</div>
+              </td>
+              <td class="rules-desc">
+                If: CustomRate &gt;= {count-ruby-http-client-requests-<br>in-10sec;10}<br>
+                <span style="color:#606A73;">Then: Block Session</span>
+              </td>
+              <td></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn" style="opacity:0.5;pointer-events:none;">&#9998;</button></td>
+              <td><button class="rules-action-btn" style="opacity:0.5;pointer-events:none;">&#8942;</button></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="rules-pagination">
+          <span>Showing 1 to 2 of 2 entries</span>
+          <span style="margin-left:16px;">Show <select class="rules-page-select"><option>25</option><option>50</option><option>100</option></select> rows</span>
+          <div class="rules-page-nums">
+            <button class="rules-pg-btn">&lt;&lt;</button>
+            <button class="rules-pg-btn">&lt;</button>
+            <button class="rules-pg-btn active">1</button>
+            <button class="rules-pg-btn">&gt;</button>
+            <button class="rules-pg-btn">&gt;&gt;</button>
+          </div>
+        </div>
+
+      </div><!-- /rules-page -->
+    </main>
+  </div>
+</div><!-- /s03 -->
+
+
+<!-- ════════════════════════════════════════════════
+     SCREEN 03.1  -  POLICIES (PROD, read-only)
+═════════════════════════════════════════════════ -->
+<div id="s03_1" class="screen">
+  <header class="top-nav black" id="nav-s03_1"></header>
+  <div class="page-body">
+    <aside class="sidebar" id="sidebar-s03_1"></aside>
+    <main class="page-content">
+
+      <!-- Read-only info banner -->
+      <div style="display:flex;align-items:center;gap:12px;background:#EFF6FF;border-left:4px solid #3B82F6;border-radius:4px;padding:12px 16px;margin:16px 20px 0;font-size:13px;color:#1E40AF;">
+        <span style="font-size:15px;flex-shrink:0;">🔒</span>
+        <span>Policies are read-only in production. To create or edit policies, switch to Stage Mode.</span>
+        <button class="btn btn-primary" style="margin-left:auto;flex-shrink:0;height:32px;font-size:12px;padding:0 14px;" onclick="showScreen('s05_2')">Switch to Stage Mode</button>
+      </div>
+
+      <!-- ── POLICIES PAGE (read-only) ── -->
+      <div class="rules-page">
+
+        <!-- Tab bar -->
+        <div class="rules-tabs">
+          <button class="rules-tab active">All</button>
+          <button class="rules-tab">ACL</button>
+          <button class="rules-tab">Allowlist</button>
+          <button class="rules-tab">WAF Rules</button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="rules-toolbar" style="justify-content:space-between;">
+          <button class="rules-icon-btn" style="width:auto;padding:0 12px;gap:6px;font-size:13px;color:#606A73;font-family:'Inter',sans-serif;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M4 8h8M6 12h4" stroke="#606A73" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Filters
+          </button>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div class="rules-filter">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6.5 1A5.5 5.5 0 1 0 12 6.5 5.506 5.506 0 0 0 6.5 1zm4.457 9.043L15 14.086 14.086 15l-4.043-4.043A5.5 5.5 0 1 1 10.957 10.043z" fill="#606A73"/></svg>
+              <input type="text" placeholder="Search" />
+            </div>
+            <button class="btn btn-primary" style="height:36px;font-size:13px;padding:0 16px;">New Policy</button>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <table class="rules-table">
+          <thead>
+            <tr>
+              <th>Policy Name (ID)</th>
+              <th>Task</th>
+              <th>Description</th>
+              <th>Default</th>
+              <th>Applied To</th>
+              <th>Last Modified</th>
+              <th>Status (ID)</th>
+              <th>More</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="rules-name">Global WAF Policy<br><span style="color:#606A73;font-size:12px;">ACL-001</span></div></td>
+              <td><span class="pol-badge waf-rule">WAF Rules</span></td>
+              <td class="rules-desc">SQL injection &amp; XSS prevention</td>
+              <td>Block</td>
+              <td>8 sites</td>
+              <td><div style="font-size:13px;">Mar 11, 2026</div><div style="font-size:11px;color:#606A73;">2 days ago</div></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn" style="opacity:0.5;pointer-events:none;">&#8942;</button></td>
+            </tr>
+            <tr>
+              <td><div class="rules-name">Bot Detection – API<br><span style="color:#606A73;font-size:12px;">BOT-004</span></div></td>
+              <td><span class="pol-badge waf-rule">WAF Rules</span></td>
+              <td class="rules-desc">Detect automated API traffic</td>
+              <td>Challenge</td>
+              <td>3 sites</td>
+              <td><div style="font-size:13px;">Mar 10, 2026</div><div style="font-size:11px;color:#606A73;">3 days ago</div></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn" style="opacity:0.5;pointer-events:none;">&#8942;</button></td>
+            </tr>
+            <tr>
+              <td><div class="rules-name">allow no traffic from Israel<br><span style="color:#606A73;font-size:12px;">DSGN-898</span></div></td>
+              <td><span class="pol-badge acl-badge">ACL</span></td>
+              <td class="rules-desc">Geo-based access control rule</td>
+              <td>Block</td>
+              <td>5 sites</td>
+              <td><div style="font-size:13px;">Mar 08, 2026</div><div style="font-size:11px;color:#606A73;">5 days ago</div></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn" style="opacity:0.5;pointer-events:none;">&#8942;</button></td>
+            </tr>
+            <tr>
+              <td><div class="rules-name">above 500 policy<br><span style="color:#606A73;font-size:12px;">DSGN-00F</span></div></td>
+              <td><span class="pol-badge waf-rule">WAF Rules</span></td>
+              <td class="rules-desc">Rate threshold enforcement</td>
+              <td>Block</td>
+              <td>2 sites</td>
+              <td><div style="font-size:13px;">Mar 06, 2026</div><div style="font-size:11px;color:#606A73;">7 days ago</div></td>
+              <td><span class="rules-status modified"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#F59E0B"/><path d="M8 5v3.5M8 10.5v.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg> Modified</span></td>
+              <td><button class="rules-action-btn" style="opacity:0.5;pointer-events:none;">&#8942;</button></td>
+            </tr>
+            <tr>
+              <td><div class="rules-name">Rate Limiting – Login<br><span style="color:#606A73;font-size:12px;">RL-012</span></div></td>
+              <td><span class="pol-badge waf-rule">WAF Rules</span></td>
+              <td class="rules-desc">Limit login attempts to prevent brute force</td>
+              <td>Block</td>
+              <td>1 site</td>
+              <td><div style="font-size:13px;">Feb 01, 2026</div><div style="font-size:11px;color:#606A73;">38 days ago</div></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn" style="opacity:0.5;pointer-events:none;">&#8942;</button></td>
+            </tr>
+            <tr>
+              <td><div class="rules-name">block new domains<br><span style="color:#606A73;font-size:12px;">ATTS-101</span></div></td>
+              <td><span class="pol-badge acl-badge">ACL</span></td>
+              <td class="rules-desc">Block requests from newly registered domains</td>
+              <td>Block</td>
+              <td>All sites</td>
+              <td><div style="font-size:13px;">Jan 28, 2026</div><div style="font-size:11px;color:#606A73;">45 days ago</div></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn" style="opacity:0.5;pointer-events:none;">&#8942;</button></td>
+            </tr>
+            <tr>
+              <td><div class="rules-name">block low score domains<br><span style="color:#606A73;font-size:12px;">LTLM-21271</span></div></td>
+              <td><span class="pol-badge waf-rule">WAF Rules</span></td>
+              <td class="rules-desc">Block clients with reputation score &lt; 30</td>
+              <td>Block</td>
+              <td>6 sites</td>
+              <td><div style="font-size:13px;">Jan 15, 2026</div><div style="font-size:11px;color:#606A73;">58 days ago</div></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn" style="opacity:0.5;pointer-events:none;">&#8942;</button></td>
+            </tr>
+            <tr>
+              <td><div class="rules-name">IP Allowlist<br><span style="color:#606A73;font-size:12px;">IPL-007</span></div></td>
+              <td><span class="pol-badge allowlist">Allowlist</span></td>
+              <td class="rules-desc">Allow requests from known trusted IPs</td>
+              <td>Allow</td>
+              <td>4 sites</td>
+              <td><div style="font-size:13px;">Mar 09, 2026</div><div style="font-size:11px;color:#606A73;">4 days ago</div></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn" style="opacity:0.5;pointer-events:none;">&#8942;</button></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="rules-pagination">
+          <span>Showing 1 to 8 of 8 entries</span>
+          <span style="margin-left:16px;">Show <select class="rules-page-select"><option>25</option><option>50</option><option>100</option></select> rows</span>
+          <div class="rules-page-nums">
+            <button class="rules-pg-btn">&lt;&lt;</button>
+            <button class="rules-pg-btn">&lt;</button>
+            <button class="rules-pg-btn active">1</button>
+            <button class="rules-pg-btn">&gt;</button>
+            <button class="rules-pg-btn">&gt;&gt;</button>
+          </div>
+        </div>
+
+      </div><!-- /policies-page -->
+    </main>
+  </div>
+</div><!-- /s03_1 -->
+
+
+<!-- ════════════════════════════════════════════════
+     SCREEN 04  -  IN STAGE MODE
+═════════════════════════════════════════════════ -->
+<div id="s04" class="screen">
+  <header class="top-nav blue" id="nav-s04"></header>
+  <div class="page-body">
+    <aside class="sidebar" id="sidebar-s04"></aside>
+    <main class="page-content">
+      <div class="stage-banner" id="banner-s04"></div>
+      <div class="table-container" style="margin:20px;">
+        <div class="table-toolbar" style="gap:12px;">
+          <div class="table-title">Websites</div>
+          <div class="table-actions" style="margin-left:auto;">
+            <button class="btn btn-ghost">🔍 Search</button>
+            <button class="btn btn-ghost">⊟ Filter</button>
+            <button class="btn btn-ghost-sm">⊞</button>
+          </div>
+        </div>
+        <table id="websites-table-s04"></table>
+        <div class="table-pagination">
+          <span>1–7 of 1,228</span>
+          <span>Rows per page: <strong>100</strong></span>
+          <div class="page-nums"><span class="current-page">1</span><span>2</span><span>3</span><span>4</span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div><!-- /s04 -->
+
+
+<!-- ════════════════════════════════════════════════
+     SCREEN 05.1  -  NAVIGATING STAGE (website console)
+═════════════════════════════════════════════════ -->
+<div id="s05_1" class="screen">
+  <header class="top-nav blue" id="nav-s05_1"></header>
+  <div class="page-body">
+    <aside class="sidebar sidebar-navigating" id="sidebar-s05_1"></aside>
+    <main class="page-content">
+      <div class="stage-banner" id="banner-s05_1"></div>
+      <div style="padding:16px 20px 8px;">
+        <div class="page-content-title">api.acme-corp.com</div>
+      </div>
+      <img src="dashboard-screenshot.png"
+           alt="Website dashboard"
+           style="width:100%;display:block;" />
+    </main>
+  </div>
+</div><!-- /s05_1 -->
+
+
+<!-- ════════════════════════════════════════════════
+     SCREEN 05.1.1 - RULES IN STAGE
+═════════════════════════════════════════════════ -->
+<div id="s05_1_1" class="screen">
+  <header class="top-nav blue" id="nav-s05_1_1"></header>
+  <div class="page-body">
+    <aside class="sidebar sidebar-navigating" id="sidebar-s05_1_1"></aside>
+    <main class="page-content">
+      <div class="stage-banner" id="banner-s05_1_1"></div>
+
+      <!-- ── RULES PAGE ── -->
+      <div class="rules-page">
+
+        <!-- Tab bar -->
+        <div class="rules-tabs">
+          <button class="rules-tab active">All</button>
+          <button class="rules-tab">Redirect</button>
+          <button class="rules-tab">Rates</button>
+          <button class="rules-tab">Security</button>
+          <button class="rules-tab">Rewrite Request</button>
+          <button class="rules-tab">Forward</button>
+          <button class="rules-tab">Rewrite Response</button>
+          <button class="rules-tab">Override WAF Settings</button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="rules-toolbar">
+          <div class="rules-filter">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6.5 1A5.5 5.5 0 1 0 12 6.5 5.506 5.506 0 0 0 6.5 1zm4.457 9.043L15 14.086 14.086 15l-4.043-4.043A5.5 5.5 0 1 1 10.957 10.043z" fill="#606A73"/></svg>
+            <input type="text" placeholder="Filter by Keyword or ID" />
+          </div>
+          <button class="rules-icon-btn" title="Export">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M4 6l4 4 4-4M2 13h12" stroke="#606A73" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="btn btn-primary" style="height:36px;font-size:13px;padding:0 16px;">Add Rule</button>
+        </div>
+
+        <!-- Table -->
+        <table class="rules-table">
+          <thead>
+            <tr>
+              <th>PriorityName (ID)</th>
+              <th>Description</th>
+              <th>Hits (Last 7 days)</th>
+              <th>Status</th>
+              <th>Edit</th>
+              <th>More</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Rates group -->
+            <tr class="rules-group-row">
+              <td colspan="6">Rates</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="rules-name">Count Ruby HTTP client<br>requests in 10sec (10093129)</div>
+              </td>
+              <td class="rules-desc">If: ClientId == 747</td>
+              <td></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn">&#9998;</button></td>
+              <td><button class="rules-action-btn">&#8942;</button></td>
+            </tr>
+            <!-- Security group -->
+            <tr class="rules-group-row">
+              <td colspan="6">Security</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="rules-name">Block Session when reaching<br>10 requests (10093135)</div>
+              </td>
+              <td class="rules-desc">
+                If: CustomRate &gt;= {count-ruby-http-client-requests-<br>in-10sec;10}<br>
+                <span style="color:#606A73;">Then: Block Session</span>
+              </td>
+              <td></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn">&#9998;</button></td>
+              <td><button class="rules-action-btn">&#8942;</button></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="rules-pagination">
+          <span>Showing 1 to 2 of 2 entries</span>
+          <span style="margin-left:16px;">Show <select class="rules-page-select"><option>25</option><option>50</option><option>100</option></select> rows</span>
+          <div class="rules-page-nums">
+            <button class="rules-pg-btn">&lt;&lt;</button>
+            <button class="rules-pg-btn">&lt;</button>
+            <button class="rules-pg-btn active">1</button>
+            <button class="rules-pg-btn">&gt;</button>
+            <button class="rules-pg-btn">&gt;&gt;</button>
+          </div>
+        </div>
+
+      </div><!-- /rules-page -->
+    </main>
+  </div>
+</div><!-- /s05_1_1 -->
+
+
+<!-- ════════════════════════════════════════════════
+     SCREEN 05.2  -  POLICIES IN STAGE
+═════════════════════════════════════════════════ -->
+<div id="s05_2" class="screen">
+  <header class="top-nav blue" id="nav-s05_2"></header>
+  <div class="page-body">
+    <aside class="sidebar sidebar-navigating" id="sidebar-s05_2"></aside>
+    <main class="page-content">
+      <div class="stage-banner" id="banner-s05_2"></div>
+
+      <!-- ── POLICIES PAGE ── -->
+      <div class="rules-page">
+
+        <!-- Tab bar -->
+        <div class="rules-tabs">
+          <button class="rules-tab active">All</button>
+          <button class="rules-tab">ACL</button>
+          <button class="rules-tab">Allowlist</button>
+          <button class="rules-tab">WAF Rules</button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="rules-toolbar" style="justify-content:space-between;">
+          <button class="rules-icon-btn" style="width:auto;padding:0 12px;gap:6px;font-size:13px;color:#606A73;font-family:'Inter',sans-serif;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M4 8h8M6 12h4" stroke="#606A73" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Filters
+          </button>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div class="rules-filter">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6.5 1A5.5 5.5 0 1 0 12 6.5 5.506 5.506 0 0 0 6.5 1zm4.457 9.043L15 14.086 14.086 15l-4.043-4.043A5.5 5.5 0 1 1 10.957 10.043z" fill="#606A73"/></svg>
+              <input type="text" placeholder="Search" />
+            </div>
+            <button class="btn btn-primary" style="height:36px;font-size:13px;padding:0 16px;">New Policy</button>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <table class="rules-table">
+          <thead>
+            <tr>
+              <th>Policy Name (ID)</th>
+              <th>Task</th>
+              <th>Description</th>
+              <th>Default</th>
+              <th>Applied To</th>
+              <th>Last Modified</th>
+              <th>Status (ID)</th>
+              <th>More</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="rules-name">Global WAF Policy<br><span style="color:#606A73;font-size:12px;">ACL-001</span></div></td>
+              <td><span class="pol-badge waf-rule">WAF Rules</span></td>
+              <td class="rules-desc">SQL injection &amp; XSS prevention</td>
+              <td>Block</td>
+              <td>8 sites</td>
+              <td><div style="font-size:13px;">Mar 11, 2026</div><div style="font-size:11px;color:#606A73;">2 days ago</div></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn">&#8942;</button></td>
+            </tr>
+            <tr>
+              <td><div class="rules-name">Bot Detection – API<br><span style="color:#606A73;font-size:12px;">BOT-004</span></div></td>
+              <td><span class="pol-badge waf-rule">WAF Rules</span></td>
+              <td class="rules-desc">Detect automated API traffic</td>
+              <td>Challenge</td>
+              <td>3 sites</td>
+              <td><div style="font-size:13px;">Mar 10, 2026</div><div style="font-size:11px;color:#606A73;">3 days ago</div></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn">&#8942;</button></td>
+            </tr>
+            <tr>
+              <td><div class="rules-name">allow no traffic from Israel<br><span style="color:#606A73;font-size:12px;">DSGN-898</span></div></td>
+              <td><span class="pol-badge acl-badge">ACL</span></td>
+              <td class="rules-desc">Geo-based access control rule</td>
+              <td>Block</td>
+              <td>5 sites</td>
+              <td><div style="font-size:13px;">Mar 08, 2026</div><div style="font-size:11px;color:#606A73;">5 days ago</div></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn">&#8942;</button></td>
+            </tr>
+            <tr>
+              <td><div class="rules-name">above 500 policy<br><span style="color:#606A73;font-size:12px;">DSGN-00F</span></div></td>
+              <td><span class="pol-badge waf-rule">WAF Rules</span></td>
+              <td class="rules-desc">Rate threshold enforcement</td>
+              <td>Block</td>
+              <td>2 sites</td>
+              <td><div style="font-size:13px;">Mar 06, 2026</div><div style="font-size:11px;color:#606A73;">7 days ago</div></td>
+              <td><span class="rules-status modified"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#F59E0B"/><path d="M8 5v3.5M8 10.5v.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg> Modified</span></td>
+              <td><button class="rules-action-btn">&#8942;</button></td>
+            </tr>
+            <tr>
+              <td><div class="rules-name">Rate Limiting – Login<br><span style="color:#606A73;font-size:12px;">RL-012</span></div></td>
+              <td><span class="pol-badge waf-rule">WAF Rules</span></td>
+              <td class="rules-desc">Limit login attempts to prevent brute force</td>
+              <td>Block</td>
+              <td>1 site</td>
+              <td><div style="font-size:13px;">Feb 01, 2026</div><div style="font-size:11px;color:#606A73;">38 days ago</div></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn">&#8942;</button></td>
+            </tr>
+            <tr>
+              <td><div class="rules-name">block new domains<br><span style="color:#606A73;font-size:12px;">ATTS-101</span></div></td>
+              <td><span class="pol-badge acl-badge">ACL</span></td>
+              <td class="rules-desc">Block requests from newly registered domains</td>
+              <td>Block</td>
+              <td>All sites</td>
+              <td><div style="font-size:13px;">Jan 28, 2026</div><div style="font-size:11px;color:#606A73;">45 days ago</div></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn">&#8942;</button></td>
+            </tr>
+            <tr>
+              <td><div class="rules-name">block low score domains<br><span style="color:#606A73;font-size:12px;">LTLM-21271</span></div></td>
+              <td><span class="pol-badge waf-rule">WAF Rules</span></td>
+              <td class="rules-desc">Block clients with reputation score &lt; 30</td>
+              <td>Block</td>
+              <td>6 sites</td>
+              <td><div style="font-size:13px;">Jan 15, 2026</div><div style="font-size:11px;color:#606A73;">58 days ago</div></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn">&#8942;</button></td>
+            </tr>
+            <tr>
+              <td><div class="rules-name">IP Allowlist<br><span style="color:#606A73;font-size:12px;">IPL-007</span></div></td>
+              <td><span class="pol-badge allowlist">Allowlist</span></td>
+              <td class="rules-desc">Allow requests from known trusted IPs</td>
+              <td>Allow</td>
+              <td>4 sites</td>
+              <td><div style="font-size:13px;">Mar 09, 2026</div><div style="font-size:11px;color:#606A73;">4 days ago</div></td>
+              <td><span class="rules-status enabled"><svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M5 8l2.5 2.5L11 5.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Enabled</span></td>
+              <td><button class="rules-action-btn">&#8942;</button></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="rules-pagination">
+          <span>Showing 1 to 8 of 8 entries</span>
+          <span style="margin-left:16px;">Show <select class="rules-page-select"><option>25</option><option>50</option><option>100</option></select> rows</span>
+          <div class="rules-page-nums">
+            <button class="rules-pg-btn">&lt;&lt;</button>
+            <button class="rules-pg-btn">&lt;</button>
+            <button class="rules-pg-btn active">1</button>
+            <button class="rules-pg-btn">&gt;</button>
+            <button class="rules-pg-btn">&gt;&gt;</button>
+          </div>
+        </div>
+
+      </div><!-- /policies-page -->
+    </main>
+  </div>
+</div><!-- /s05_2 -->
+
+
+<!-- ════════════════════════════════════════════════
+     SCREEN 05.3  -  SECURITY EVENTS IN STAGE
+═════════════════════════════════════════════════ -->
+<div id="s05_3" class="screen">
+  <header class="top-nav blue" id="nav-s05_3"></header>
+  <div class="page-body">
+    <aside class="sidebar sidebar-navigating" id="sidebar-s05_3"></aside>
+    <main class="page-content">
+      <div class="stage-banner" id="banner-s05_3"></div>
+      <!-- ── SECURITY EVENTS PAGE ── -->
+      <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;font-family:'Inter',sans-serif;">
+
+        <!-- Filter bar -->
+        <div style="background:#fff;border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,0.13),0 1px 1px rgba(0,0,0,0.1);padding:10px 12px;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:center;gap:0;">
+            <!-- Assets dropdown -->
+            <div style="display:flex;flex-direction:column;padding:4px 8px 4px 0;min-width:160px;">
+              <span style="font-size:11px;color:#606A73;letter-spacing:0.4px;">Assets</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:13px;color:#212121;">All websites selected (Stage)</span>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="#606A73" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div style="width:1px;height:32px;background:#CBD6E0;margin:0 8px;"></div>
+            <!-- Timeframe dropdown -->
+            <div style="display:flex;flex-direction:column;padding:4px 8px 4px 0;min-width:120px;">
+              <span style="font-size:11px;color:#606A73;letter-spacing:0.4px;">Timeframe</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:13px;color:#212121;">Last 7 days</span>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="#606A73" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div style="width:1px;height:32px;background:#CBD6E0;margin:0 8px;"></div>
+            <!-- Data Region dropdown -->
+            <div style="display:flex;flex-direction:column;padding:4px 8px 4px 0;">
+              <span style="font-size:11px;color:#606A73;letter-spacing:0.4px;">Data Region</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:13px;color:#212121;">EU</span>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="#606A73" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+          </div>
+          <div style="height:1px;background:#CBD6E0;margin:0 -12px;"></div>
+          <div>
+            <button style="border:1px solid #285AE6;background:transparent;color:#285AE6;font-size:12px;font-family:'Inter',sans-serif;padding:4px 10px;border-radius:4px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M4 8h8M6 12h4" stroke="#285AE6" stroke-width="1.5" stroke-linecap="round"/></svg>
+              Filters
+            </button>
+          </div>
+        </div>
+
+        <!-- Top vis: WAF Sessions by violation type -->
+        <div style="background:#fff;border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,0.13),0 1px 1px rgba(0,0,0,0.1);padding:24px;display:flex;flex-direction:column;gap:16px;">
+          <div style="font-size:16px;font-weight:600;color:#212121;letter-spacing:0.5px;">WAF Sessions (by violation type)</div>
+          <!-- Stat items -->
+          <div style="display:flex;gap:48px;align-items:flex-start;">
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div style="width:4px;height:36px;background:#5081F2;border-radius:1px;margin-top:2px;flex-shrink:0;"></div>
+              <div>
+                <div style="font-size:13px;color:#808B95;line-height:20px;">Security rules</div>
+                <div style="font-size:16px;color:#212121;font-weight:600;letter-spacing:0.5px;line-height:24px;">545K</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div style="width:4px;height:36px;background:#B88CF1;border-radius:1px;margin-top:2px;flex-shrink:0;"></div>
+              <div>
+                <div style="font-size:13px;color:#808B95;line-height:20px;">SQL Injection</div>
+                <div style="font-size:16px;color:#212121;font-weight:600;letter-spacing:0.5px;line-height:24px;">400K</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div style="width:4px;height:36px;background:#FFDA6C;border-radius:1px;margin-top:2px;flex-shrink:0;"></div>
+              <div>
+                <div style="font-size:13px;color:#808B95;line-height:20px;">Cross Site Scripting</div>
+                <div style="font-size:16px;color:#212121;font-weight:600;letter-spacing:0.5px;line-height:24px;">200K</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div style="width:4px;height:36px;background:#212121;border-radius:1px;margin-top:2px;flex-shrink:0;"></div>
+              <div>
+                <div style="font-size:13px;color:#808B95;line-height:20px;">DDoS</div>
+                <div style="font-size:16px;color:#212121;font-weight:600;letter-spacing:0.5px;line-height:24px;">2K</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div style="width:4px;height:36px;background:#808B95;border-radius:1px;margin-top:2px;flex-shrink:0;"></div>
+              <div>
+                <div style="font-size:13px;color:#808B95;line-height:20px;">Bot Access Control</div>
+                <div style="font-size:16px;color:#212121;font-weight:600;letter-spacing:0.5px;line-height:24px;">67</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div style="width:4px;height:36px;background:#FF5C5E;border-radius:1px;margin-top:2px;flex-shrink:0;"></div>
+              <div>
+                <div style="font-size:13px;color:#808B95;line-height:20px;">Other</div>
+                <div style="font-size:16px;color:#212121;font-weight:600;letter-spacing:0.5px;line-height:24px;">31</div>
+              </div>
+            </div>
+          </div>
+          <!-- Stacked bar -->
+          <div style="display:flex;width:100%;height:25px;border-radius:2px;overflow:hidden;">
+            <div style="width:41.24%;background:#5081F2;"></div>
+            <div style="width:26.59%;background:#B88CF1;"></div>
+            <div style="width:14.84%;background:#FFDA6C;"></div>
+            <div style="width:5.58%;background:#212121;"></div>
+            <div style="width:9.46%;background:#808B95;"></div>
+            <div style="flex:1;background:#FF5C5E;"></div>
+          </div>
+        </div>
+
+        <!-- Sessions table -->
+        <div style="background:#fff;border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,0.13),0 1px 1px rgba(0,0,0,0.1);overflow:hidden;">
+          <div style="padding:14px 24px 10px;font-size:14px;font-weight:600;color:#212121;border-bottom:1px solid #CBD6E0;">WAF Sessions</div>
+
+          <!-- Session rows -->
+          <!-- Reusable session row structure: chevron | left details | mid details | right stats | divider | tags | kebab -->
+
+          <!-- Row 1 -->
+          <div style="display:flex;gap:16px;align-items:flex-start;padding:18px 24px;border-top:1px solid #CBD6E0;">
+            <div style="width:20px;flex-shrink:0;padding-top:2px;color:#606A73;font-size:14px;">›</div>
+            <div style="flex:1;display:flex;gap:12px;min-width:0;">
+              <!-- Col 1 -->
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Client Type</span><span style="color:#212121;">Crawler</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Client App</span><span style="color:#212121;">Bot</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Entry page</span><span style="color:#212121;word-break:break-all;">/course/view.php?id=%27nvOp</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Method</span><span style="color:#212121;">POST</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">User Agent</span><span style="color:#212121;">Mozilla/5.0 (Windows NT 10.0; WOW64</span></div>
+              </div>
+              <!-- Col 2 -->
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Time</span><span style="color:#212121;font-size:12px;">11 Oct 2023, 09:28:12</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Website</span><span style="color:#212121;">www.sitename.com (126862)</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Session ID</span><span style="color:#212121;">120000100024049434</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Country</span><span style="color:#212121;">United States</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Source IP</span><span style="color:#285AE6;">75.8.96.87</span></div>
+              </div>
+              <!-- Col 3 -->
+              <div style="width:105px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">Hits</span><span style="color:#212121;">4</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">HTTP</span><span style="color:#212121;">2.0</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">Cookies</span><span style="color:#212121;">Supported</span></div>
+              </div>
+              <!-- Divider -->
+              <div style="width:1px;background:#CBD6E0;align-self:stretch;flex-shrink:0;"></div>
+              <!-- Tags -->
+              <div style="width:170px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;">
+                <span style="display:inline-block;background:#FFD2CB;color:#910A15;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">Security Rules (20)</span>
+                <span style="display:inline-block;background:#E7D9FA;color:#5C16B6;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">Bad Bots</span>
+                <span style="display:inline-block;background:#FFD2CB;color:#910A15;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">Illegal Resource Access (6)</span>
+                <span style="display:inline-block;background:#FFD2CB;color:#910A15;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">API Specification Violation (5)</span>
+                <span style="display:inline-block;background:#FFD2CB;color:#910A15;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">DDoS (3)</span>
+              </div>
+              <!-- Kebab -->
+              <div style="flex-shrink:0;">
+                <button style="border:1px solid #CBD6E0;background:#fff;border-radius:8px;padding:6px;cursor:pointer;color:#606A73;font-size:15px;line-height:1;">⋯</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 2 -->
+          <div style="display:flex;gap:16px;align-items:flex-start;padding:18px 24px;border-top:1px solid #CBD6E0;">
+            <div style="width:20px;flex-shrink:0;padding-top:2px;color:#606A73;font-size:14px;">›</div>
+            <div style="flex:1;display:flex;gap:12px;min-width:0;">
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Client Type</span><span style="color:#212121;">Browser</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Client App</span><span style="color:#212121;">Human</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Entry page</span><span style="color:#212121;word-break:break-all;">/api/v2/users/auth</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Method</span><span style="color:#212121;">GET</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">User Agent</span><span style="color:#212121;">Chrome/117.0 (Macintosh; Intel)</span></div>
+              </div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Time</span><span style="color:#212121;font-size:12px;">11 Oct 2023, 08:14:03</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Website</span><span style="color:#212121;">api.acme-corp.com (123478)</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Session ID</span><span style="color:#212121;">120000100024049512</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Country</span><span style="color:#212121;">Germany</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Source IP</span><span style="color:#285AE6;">91.22.54.11</span></div>
+              </div>
+              <div style="width:105px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">Hits</span><span style="color:#212121;">12</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">HTTP</span><span style="color:#212121;">1.1</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">Cookies</span><span style="color:#212121;">Not Supported</span></div>
+              </div>
+              <div style="width:1px;background:#CBD6E0;align-self:stretch;flex-shrink:0;"></div>
+              <div style="width:170px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;">
+                <span style="display:inline-block;background:#E7D9FA;color:#5C16B6;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">SQL Injection (12)</span>
+                <span style="display:inline-block;background:#FFD2CB;color:#910A15;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">XSS (3)</span>
+              </div>
+              <div style="flex-shrink:0;"><button style="border:1px solid #CBD6E0;background:#fff;border-radius:8px;padding:6px;cursor:pointer;color:#606A73;font-size:15px;line-height:1;">⋯</button></div>
+            </div>
+          </div>
+
+          <!-- Row 3 -->
+          <div style="display:flex;gap:16px;align-items:flex-start;padding:18px 24px;border-top:1px solid #CBD6E0;">
+            <div style="width:20px;flex-shrink:0;padding-top:2px;color:#606A73;font-size:14px;">›</div>
+            <div style="flex:1;display:flex;gap:12px;min-width:0;">
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Client Type</span><span style="color:#212121;">Crawler</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Client App</span><span style="color:#212121;">Bot</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Entry page</span><span style="color:#212121;word-break:break-all;">/admin/login.php</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Method</span><span style="color:#212121;">POST</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">User Agent</span><span style="color:#212121;">Python-urllib/3.9</span></div>
+              </div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Time</span><span style="color:#212121;font-size:12px;">10 Oct 2023, 22:47:55</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Website</span><span style="color:#212121;">shop.acme-corp.com (756362)</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Session ID</span><span style="color:#212121;">120000100024049601</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Country</span><span style="color:#212121;">China</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Source IP</span><span style="color:#285AE6;">112.45.78.201</span></div>
+              </div>
+              <div style="width:105px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">Hits</span><span style="color:#212121;">31</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">HTTP</span><span style="color:#212121;">2.0</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">Cookies</span><span style="color:#212121;">Supported</span></div>
+              </div>
+              <div style="width:1px;background:#CBD6E0;align-self:stretch;flex-shrink:0;"></div>
+              <div style="width:170px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;">
+                <span style="display:inline-block;background:#FFD2CB;color:#910A15;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">Security Rules (31)</span>
+                <span style="display:inline-block;background:#FFD2CB;color:#910A15;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">Illegal Resource Access (8)</span>
+              </div>
+              <div style="flex-shrink:0;"><button style="border:1px solid #CBD6E0;background:#fff;border-radius:8px;padding:6px;cursor:pointer;color:#606A73;font-size:15px;line-height:1;">⋯</button></div>
+            </div>
+          </div>
+
+          <!-- Row 4 -->
+          <div style="display:flex;gap:16px;align-items:flex-start;padding:18px 24px;border-top:1px solid #CBD6E0;">
+            <div style="width:20px;flex-shrink:0;padding-top:2px;color:#606A73;font-size:14px;">›</div>
+            <div style="flex:1;display:flex;gap:12px;min-width:0;">
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Client Type</span><span style="color:#212121;">Browser</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Client App</span><span style="color:#212121;">Human</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Entry page</span><span style="color:#212121;word-break:break-all;">/wp-login.php?redirect_to=admin</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Method</span><span style="color:#212121;">POST</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">User Agent</span><span style="color:#212121;">Mozilla/5.0 (Linux; Android 10)</span></div>
+              </div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Time</span><span style="color:#212121;font-size:12px;">10 Oct 2023, 19:55:22</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Website</span><span style="color:#212121;">auth.acme-corp.com (991204)</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Session ID</span><span style="color:#212121;">120000100024049387</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Country</span><span style="color:#212121;">Russia</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Source IP</span><span style="color:#285AE6;">185.220.101.34</span></div>
+              </div>
+              <div style="width:105px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">Hits</span><span style="color:#212121;">8</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">HTTP</span><span style="color:#212121;">1.1</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">Cookies</span><span style="color:#212121;">Supported</span></div>
+              </div>
+              <div style="width:1px;background:#CBD6E0;align-self:stretch;flex-shrink:0;"></div>
+              <div style="width:170px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;">
+                <span style="display:inline-block;background:#E7D9FA;color:#5C16B6;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">Bad Bots</span>
+                <span style="display:inline-block;background:#FFD2CB;color:#910A15;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">DDoS (3)</span>
+                <span style="display:inline-block;background:#FFD2CB;color:#910A15;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">API Specification Violation (2)</span>
+              </div>
+              <div style="flex-shrink:0;"><button style="border:1px solid #CBD6E0;background:#fff;border-radius:8px;padding:6px;cursor:pointer;color:#606A73;font-size:15px;line-height:1;">⋯</button></div>
+            </div>
+          </div>
+
+          <!-- Row 5 -->
+          <div style="display:flex;gap:16px;align-items:flex-start;padding:18px 24px;border-top:1px solid #CBD6E0;">
+            <div style="width:20px;flex-shrink:0;padding-top:2px;color:#606A73;font-size:14px;">›</div>
+            <div style="flex:1;display:flex;gap:12px;min-width:0;">
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Client Type</span><span style="color:#212121;">Browser</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Client App</span><span style="color:#212121;">Bot</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Entry page</span><span style="color:#212121;word-break:break-all;">/search?q=&lt;script&gt;alert(1)&lt;/script&gt;</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Method</span><span style="color:#212121;">GET</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">User Agent</span><span style="color:#212121;">curl/7.88.1</span></div>
+              </div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Time</span><span style="color:#212121;font-size:12px;">10 Oct 2023, 17:22:41</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Website</span><span style="color:#212121;">cdn.acme-corp.com (334891)</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Session ID</span><span style="color:#212121;">120000100024049299</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Country</span><span style="color:#212121;">Brazil</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Source IP</span><span style="color:#285AE6;">201.87.34.66</span></div>
+              </div>
+              <div style="width:105px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">Hits</span><span style="color:#212121;">2</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">HTTP</span><span style="color:#212121;">2.0</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">Cookies</span><span style="color:#212121;">Not Supported</span></div>
+              </div>
+              <div style="width:1px;background:#CBD6E0;align-self:stretch;flex-shrink:0;"></div>
+              <div style="width:170px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;">
+                <span style="display:inline-block;background:#FFD2CB;color:#910A15;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">Cross Site Scripting (2)</span>
+                <span style="display:inline-block;background:#FFD2CB;color:#910A15;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">Security Rules (5)</span>
+              </div>
+              <div style="flex-shrink:0;"><button style="border:1px solid #CBD6E0;background:#fff;border-radius:8px;padding:6px;cursor:pointer;color:#606A73;font-size:15px;line-height:1;">⋯</button></div>
+            </div>
+          </div>
+
+          <!-- Row 6 -->
+          <div style="display:flex;gap:16px;align-items:flex-start;padding:18px 24px;border-top:1px solid #CBD6E0;border-bottom:1px solid #CBD6E0;">
+            <div style="width:20px;flex-shrink:0;padding-top:2px;color:#606A73;font-size:14px;">›</div>
+            <div style="flex:1;display:flex;gap:12px;min-width:0;">
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Client Type</span><span style="color:#212121;">Crawler</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Client App</span><span style="color:#212121;">Bot</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Entry page</span><span style="color:#212121;word-break:break-all;">/api/v1/products?id=1 OR 1=1</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">Method</span><span style="color:#212121;">GET</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:90px;flex-shrink:0;">User Agent</span><span style="color:#212121;">Go-http-client/2.0</span></div>
+              </div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Time</span><span style="color:#212121;font-size:12px;">10 Oct 2023, 14:09:18</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Website</span><span style="color:#212121;">admin.acme-corp.com (558843)</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Session ID</span><span style="color:#212121;">120000100024049155</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Country</span><span style="color:#212121;">Netherlands</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;width:80px;flex-shrink:0;">Source IP</span><span style="color:#285AE6;">45.152.66.201</span></div>
+              </div>
+              <div style="width:105px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">Hits</span><span style="color:#212121;">17</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">HTTP</span><span style="color:#212121;">2.0</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:#606A73;white-space:nowrap;flex-shrink:0;margin-right:4px;">Cookies</span><span style="color:#212121;">Supported</span></div>
+              </div>
+              <div style="width:1px;background:#CBD6E0;align-self:stretch;flex-shrink:0;"></div>
+              <div style="width:170px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;">
+                <span style="display:inline-block;background:#E7D9FA;color:#5C16B6;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">SQL Injection (17)</span>
+                <span style="display:inline-block;background:#FFD2CB;color:#910A15;font-size:11px;padding:3px 6px;border-radius:2px;white-space:nowrap;">Security Rules (10)</span>
+              </div>
+              <div style="flex-shrink:0;"><button style="border:1px solid #CBD6E0;background:#fff;border-radius:8px;padding:6px;cursor:pointer;color:#606A73;font-size:15px;line-height:1;">⋯</button></div>
+            </div>
+          </div>
+
+        </div><!-- /sessions table -->
+
+      </div><!-- /security events page -->
+    </main>
+  </div>
+</div><!-- /s05_3 -->
+
+
+<!-- ════════════════════════════════════════════════
+     DIFF OVERLAY (s07) — fixed on top of any screen
+═════════════════════════════════════════════════ -->
+<div id="s07" class="screen diff-overlay">
+
+  <!-- Blue top bar -->
+  <div class="top-nav blue" style="width:100%;flex-shrink:0;">
+    <button class="btn" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.35);padding:0 14px;height:34px;font-size:13px;margin-right:16px;" onclick="showScreen('s04')">← Back</button>
+    <div>
+      <div style="font-size:15px;font-weight:600;color:#fff;line-height:1.2;cursor:pointer;" onclick="showScreen('s07rb')" title="Click to open redesigned version">Review Changes – Ready to Promote <span style="font-size:10px;background:rgba(255,255,255,0.18);padding:2px 7px;border-radius:10px;margin-left:6px;vertical-align:middle;font-weight:500;">Redesign ↗</span></div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.7);">Account Level · Version V10_11-03-26</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-left:28px;">
+      <span class="diff-badge prod">PROD</span>
+      <span class="diff-arrow">→</span>
+      <span class="diff-badge stage">V10_11-03-26 STAGE</span>
+    </div>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="diff-stats-bar" style="flex-shrink:0;">
+    <div class="diff-stat"><span class="badge-add">+5 Added</span></div>
+    <div class="diff-stat"><span class="badge-mod">~ 5 Modified</span></div>
+    <div class="diff-stat"><span class="badge-rem">-2 Removed</span></div>
+    <div style="margin-left:auto;font-size:13px;color:#A3ADB6;">Select changes to include in promotion. Unselected changes remain in stage.</div>
+  </div>
+
+  <!-- Scrollable body -->
+  <div class="diff-body" style="flex:1;min-height:0;">
+
+    <!-- MAIN DIFF CONTENT -->
+    <div class="diff-main">
+
+      <!-- SECTION: Website Level Changes -->
+      <div class="diff-section" id="sec-website">
+        <div class="diff-section-header" onclick="toggleSection('sec-website')">
+          <input type="checkbox" checked id="sec-website-cb"
+            onclick="event.stopPropagation();sectionCbClick('sec-website',this)"
+            style="accent-color:#041295;" />
+          <span class="diff-section-title">Website Level Changes</span>
+          <span class="diff-change-count">8 changes</span>
+          <span class="diff-section-chevron">▾</span>
+        </div>
+        <div class="diff-section-body">
+
+          <!-- Sub: Security Rules -->
+          <div class="diff-subsection" id="sub-security">
+            <div class="diff-subsection-header">
+              <input type="checkbox" checked id="sub-security-cb"
+                onclick="subsectionCbClick('sub-security',this)"
+                style="accent-color:#041295;" />
+              <span class="diff-subsection-title">Security Rules</span>
+              <span class="diff-change-count">4 changes</span>
+            </div>
+            <div class="diff-row">
+              <div class="diff-row-check"><input type="checkbox" checked id="c1" onchange="rowCbChange(this)" /></div>
+              <button class="diff-row-delete" onclick="deleteRow(this)" title="Delete">🗑</button>
+              <div class="diff-row-type mod">MOD</div>
+              <div class="diff-row-content">
+                <div class="diff-cell">
+                  <span class="diff-cell-label">Production</span>
+                  <span class="diff-cell-key">WAF Rule: SQL Injection Block</span>
+                  <span class="diff-cell-value old">Action: Block · Severity: High · Confidence: 70%</span>
+                </div>
+                <div class="diff-cell">
+                  <span class="diff-cell-label">Stage (V10)</span>
+                  <span class="diff-cell-key">WAF Rule: SQL Injection Block</span>
+                  <span class="diff-cell-value new">Action: Block · Severity: Critical · Confidence: 90%</span>
+                </div>
+              </div>
+            </div>
+            <div class="diff-row">
+              <div class="diff-row-check"><input type="checkbox" checked id="c2" onchange="rowCbChange(this)" /></div>
+              <button class="diff-row-delete" onclick="deleteRow(this)" title="Delete">🗑</button>
+              <div class="diff-row-type mod">MOD</div>
+              <div class="diff-row-content">
+                <div class="diff-cell">
+                  <span class="diff-cell-label">Production</span>
+                  <span class="diff-cell-key">WAF Rule: XSS Detection</span>
+                  <span class="diff-cell-value old">Exception: api/v1/comment · Status: Active</span>
+                </div>
+                <div class="diff-cell">
+                  <span class="diff-cell-label">Stage (V10)</span>
+                  <span class="diff-cell-key">WAF Rule: XSS Detection</span>
+                  <span class="diff-cell-value new">Exception: api/v2/comment · Status: Active</span>
+                </div>
+              </div>
+            </div>
+            <div class="diff-row">
+              <div class="diff-row-check"><input type="checkbox" checked id="c3" onchange="rowCbChange(this)" /></div>
+              <button class="diff-row-delete" onclick="deleteRow(this)" title="Delete">🗑</button>
+              <div class="diff-row-type add">ADD</div>
+              <div class="diff-row-content single">
+                <div class="diff-cell">
+                  <span class="diff-cell-label">New in Stage (V10)</span>
+                  <span class="diff-cell-key">WAF Rule: Geo-Block – High-Risk Regions</span>
+                  <span class="diff-cell-value added">Blocked regions: KP, IR, RU · Action: Block · Log: Enabled</span>
+                </div>
+              </div>
+            </div>
+            <div class="diff-row">
+              <div class="diff-row-check"><input type="checkbox" checked id="c4" onchange="rowCbChange(this)" /></div>
+              <button class="diff-row-delete" onclick="deleteRow(this)" title="Delete">🗑</button>
+              <div class="diff-row-type rem">REM</div>
+              <div class="diff-row-content single">
+                <div class="diff-cell">
+                  <span class="diff-cell-label">Removed in Stage (V10)</span>
+                  <span class="diff-cell-key">WAF Rule: Legacy IP Whitelist v1</span>
+                  <span class="diff-cell-value removed">Rule ID: WAF-034 · Deprecated – replaced by ACL-007</span>
+                </div>
+              </div>
+            </div>
+          </div><!-- /Security Rules -->
+
+          <!-- Sub: Cache Settings -->
+          <div class="diff-subsection" id="sub-cache">
+            <div class="diff-subsection-header">
+              <input type="checkbox" checked id="sub-cache-cb"
+                onclick="subsectionCbClick('sub-cache',this)"
+                style="accent-color:#041295;" />
+              <span class="diff-subsection-title">Cache Settings</span>
+              <span class="diff-change-count">2 changes</span>
+            </div>
+            <div class="diff-row">
+              <div class="diff-row-check"><input type="checkbox" checked id="c5" onchange="rowCbChange(this)" /></div>
+              <button class="diff-row-delete" onclick="deleteRow(this)" title="Delete">🗑</button>
+              <div class="diff-row-type mod">MOD</div>
+              <div class="diff-row-content">
+                <div class="diff-cell">
+                  <span class="diff-cell-label">Production</span>
+                  <span class="diff-cell-key">Cache TTL – /api/v2/*</span>
+                  <span class="diff-cell-value old">300s (5 min)</span>
+                </div>
+                <div class="diff-cell">
+                  <span class="diff-cell-label">Stage (V10)</span>
+                  <span class="diff-cell-key">Cache TTL – /api/v2/*</span>
+                  <span class="diff-cell-value new">60s (1 min)</span>
+                </div>
+              </div>
+            </div>
+            <div class="diff-row">
+              <div class="diff-row-check"><input type="checkbox" id="c6" onchange="rowCbChange(this)" /></div>
+              <button class="diff-row-delete" onclick="deleteRow(this)" title="Delete">🗑</button>
+              <div class="diff-row-type add">ADD</div>
+              <div class="diff-row-content single">
+                <div class="diff-cell">
+                  <span class="diff-cell-label">New in Stage (V10)</span>
+                  <span class="diff-cell-key">Cache Rule – Static Assets</span>
+                  <span class="diff-cell-value added">Path: /static/** · TTL: 86400s · Headers: Cache-Control, ETag</span>
+                </div>
+              </div>
+            </div>
+          </div><!-- /Cache Settings -->
+
+          <!-- Sub: shop.acme-corp.com -->
+          <div class="diff-subsection" id="sub-shop">
+            <div class="diff-subsection-header">
+              <input type="checkbox" checked id="sub-shop-cb"
+                onclick="subsectionCbClick('sub-shop',this)"
+                style="accent-color:#041295;" />
+              <span class="diff-subsection-title">shop.acme-corp.com <span style="font-weight:400;color:#606A73;">(756362)</span></span>
+              <span class="diff-change-count">2 changes</span>
+            </div>
+            <div class="diff-row">
+              <div class="diff-row-check"><input type="checkbox" checked id="c7" onchange="rowCbChange(this)" /></div>
+              <button class="diff-row-delete" onclick="deleteRow(this)" title="Delete">🗑</button>
+              <div class="diff-row-type mod">MOD</div>
+              <div class="diff-row-content">
+                <div class="diff-cell">
+                  <span class="diff-cell-label">Production</span>
+                  <span class="diff-cell-key">Applied Policy: Rate Limiting – Checkout</span>
+                  <span class="diff-cell-value old">Threshold: 100 req/min</span>
+                </div>
+                <div class="diff-cell">
+                  <span class="diff-cell-label">Stage (V10)</span>
+                  <span class="diff-cell-key">Applied Policy: Rate Limiting – Checkout</span>
+                  <span class="diff-cell-value new">Threshold: 50 req/min</span>
+                </div>
+              </div>
+            </div>
+            <div class="diff-row">
+              <div class="diff-row-check"><input type="checkbox" checked id="c8" onchange="rowCbChange(this)" /></div>
+              <button class="diff-row-delete" onclick="deleteRow(this)" title="Delete">🗑</button>
+              <div class="diff-row-type add">ADD</div>
+              <div class="diff-row-content single">
+                <div class="diff-cell">
+                  <span class="diff-cell-label">New in Stage (V10)</span>
+                  <span class="diff-cell-key">Applied Policy: Cart Abuse Detection</span>
+                  <span class="diff-cell-value added">Policy ID: BOT-011 · Action: CAPTCHA Challenge</span>
+                </div>
+              </div>
+            </div>
+          </div><!-- /shop -->
+
+        </div>
+      </div><!-- /Website Level Changes -->
+
+      <!-- SECTION: Account Level Changes -->
+      <div class="diff-section" id="sec-account">
+        <div class="diff-section-header" onclick="toggleSection('sec-account')">
+          <input type="checkbox" checked id="sec-account-cb"
+            onclick="event.stopPropagation();sectionCbClick('sec-account',this)"
+            style="accent-color:#041295;" />
+          <span class="diff-section-title">Account Level Changes</span>
+          <span class="diff-change-count">4 changes</span>
+          <span class="diff-section-chevron">▾</span>
+        </div>
+        <div class="diff-section-body">
+
+          <!-- Sub: WAF Policies -->
+          <div class="diff-subsection" id="sub-waf">
+            <div class="diff-subsection-header">
+              <input type="checkbox" checked id="sub-waf-cb"
+                onclick="subsectionCbClick('sub-waf',this)"
+                style="accent-color:#041295;" />
+              <span class="diff-subsection-title">WAF Policies</span>
+              <span class="diff-change-count">2 changes</span>
+            </div>
+            <div class="diff-row">
+              <div class="diff-row-check"><input type="checkbox" checked id="c9" onchange="rowCbChange(this)" /></div>
+              <button class="diff-row-delete" onclick="deleteRow(this)" title="Delete">🗑</button>
+              <div class="diff-row-type mod">MOD</div>
+              <div class="diff-row-content">
+                <div class="diff-cell">
+                  <span class="diff-cell-label">Production</span>
+                  <span class="diff-cell-key">Policy: Global WAF Policy</span>
+                  <span class="diff-cell-value old">Mode: Detection · Exceptions: 3</span>
+                </div>
+                <div class="diff-cell">
+                  <span class="diff-cell-label">Stage (V10)</span>
+                  <span class="diff-cell-key">Policy: Global WAF Policy</span>
+                  <span class="diff-cell-value new">Mode: Prevention · Exceptions: 3</span>
+                </div>
+              </div>
+            </div>
+            <div class="diff-row">
+              <div class="diff-row-check"><input type="checkbox" checked id="c10" onchange="rowCbChange(this)" /></div>
+              <button class="diff-row-delete" onclick="deleteRow(this)" title="Delete">🗑</button>
+              <div class="diff-row-type add">ADD</div>
+              <div class="diff-row-content single">
+                <div class="diff-cell">
+                  <span class="diff-cell-label">New in Stage (V10)</span>
+                  <span class="diff-cell-key">Policy: OWASP Top 10 – 2025 Ruleset</span>
+                  <span class="diff-cell-value added">Rule count: 52 · Mode: Block · Applied to: all sites</span>
+                </div>
+              </div>
+            </div>
+          </div><!-- /WAF Policies -->
+
+          <!-- Sub: Bot Protection Policies -->
+          <div class="diff-subsection" id="sub-bot">
+            <div class="diff-subsection-header">
+              <input type="checkbox" checked id="sub-bot-cb"
+                onclick="subsectionCbClick('sub-bot',this)"
+                style="accent-color:#041295;" />
+              <span class="diff-subsection-title">Bot Protection Policies</span>
+              <span class="diff-change-count">2 changes</span>
+            </div>
+            <div class="diff-row">
+              <div class="diff-row-check"><input type="checkbox" checked id="c11" onchange="rowCbChange(this)" /></div>
+              <button class="diff-row-delete" onclick="deleteRow(this)" title="Delete">🗑</button>
+              <div class="diff-row-type mod">MOD</div>
+              <div class="diff-row-content">
+                <div class="diff-cell">
+                  <span class="diff-cell-label">Production</span>
+                  <span class="diff-cell-key">Bot Detection – API Endpoints</span>
+                  <span class="diff-cell-value old">Risk threshold: 85 · Action: Block</span>
+                </div>
+                <div class="diff-cell">
+                  <span class="diff-cell-label">Stage (V10)</span>
+                  <span class="diff-cell-key">Bot Detection – API Endpoints</span>
+                  <span class="diff-cell-value new">Risk threshold: 72 · Action: Challenge</span>
+                </div>
+              </div>
+            </div>
+            <div class="diff-row">
+              <div class="diff-row-check"><input type="checkbox" id="c12" onchange="rowCbChange(this)" /></div>
+              <button class="diff-row-delete" onclick="deleteRow(this)" title="Delete">🗑</button>
+              <div class="diff-row-type rem">REM</div>
+              <div class="diff-row-content single">
+                <div class="diff-cell">
+                  <span class="diff-cell-label">Removed in Stage (V10)</span>
+                  <span class="diff-cell-key">JS Injection – Legacy Config</span>
+                  <span class="diff-cell-value removed">Paths: /login, /checkout · replaced by updated config</span>
+                </div>
+              </div>
+            </div>
+          </div><!-- /Bot Protection Policies -->
+
+        </div>
+      </div><!-- /Account Level Changes -->
+
+    </div><!-- /diff-main -->
+
+    <!-- CART PANEL -->
+    <div class="diff-cart">
+      <div class="diff-cart-header">
+        <span class="diff-cart-title">Changes to Promote</span>
+        <span class="diff-cart-count" id="cart-count">11</span>
+      </div>
+      <div class="diff-cart-items" id="cart-items">
+        <!-- populated by JS -->
+      </div>
+      <div class="diff-cart-footer">
+        <div style="font-size:12px;color:#606A73;margin-bottom:8px;">
+          Unselected changes stay in stage and can be promoted later.
+        </div>
+        <button class="btn btn-primary" style="width:100%;" onclick="showPromoteConfirm()">Promote to Production →</button>
+      </div>
+    </div>
+
+  </div><!-- /diff-body -->
+</div><!-- /s07-overlay -->
+
+
+<!-- ════════════════════════════════════════════════
+     SCREEN 08  -  VERSION HISTORY
+═════════════════════════════════════════════════ -->
+<div id="s08" class="screen">
+  <header class="top-nav black" id="nav-s08"></header>
+  <div class="page-body">
+    <aside class="sidebar" id="sidebar-s08">
+      <div class="sidebar-label">Account Settings</div>
+    </aside>
+    <main class="page-content">
+      <div class="table-container" style="margin:20px;">
+        <div class="table-toolbar" style="flex-wrap:wrap;gap:12px;">
+          <div>
+            <div class="table-title">Version History</div>
+            <div style="font-size:12px;color:#606A73;margin-top:2px;">Full history of promoted versions for api.acme-corp.com</div>
+          </div>
+          <div class="table-actions" style="margin-left:auto;">
+            <button class="btn btn-ghost">🔍 Search</button>
+            <button class="btn btn-ghost">⊟ Filter</button>
+            <button class="btn btn-primary-sm">＋</button>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Changes <span style="color:#DF2427;">*</span></th>
+              <th>Promoted By</th>
+              <th>Promote Date</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="v10-row" style="background:#F2F6FB;">
+              <td><span class="td-real" style="font-weight:600;">V10</span></td>
+              <td><span class="td-real">V10_11-03-26</span></td>
+              <td><span class="td-real">4 changes</span></td>
+              <td id="v10-promoted-by"><span class="td-real">–</span></td>
+              <td id="v10-promote-date"><span class="td-real" style="color:#606A73;font-style:italic;">Staged – not promoted</span></td>
+              <td id="v10-status-cell"><span class="version-tag staged">In Stage</span></td>
+              <td>
+                <div class="vh-row-actions" id="v10-actions">
+                  <button class="btn btn-ghost-sm" onclick="toggleRowMenu(this)">⋯</button>
+                  <div class="nav-dropdown row-menu" style="display:none;right:0;left:auto;top:36px;">
+                    <div class="dd-item" onclick="showDiff()">Review &amp; Promote</div>
+                    <div class="dd-item">View Details</div>
+                    <div class="dd-item">Duplicate</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="td-real">V9</span></td>
+              <td><span class="td-real">V9_09-03-26</span></td>
+              <td><span class="td-real">8 changes</span></td>
+              <td><span class="td-real">j.smith@acme.com</span></td>
+              <td><span class="td-real">09/03/2026 16:22</span></td>
+              <td id="v9-status-cell"><span class="version-tag prod">Production</span></td>
+              <td>
+                <div class="vh-row-actions">
+                  <div style="position:relative;" class="row-action-wrap">
+                    <button class="btn btn-ghost-sm" onclick="toggleRowMenu(this)">⋯</button>
+                    <div class="nav-dropdown row-menu" style="display:none;right:0;left:auto;top:36px;">
+                      <div class="dd-item">View Details</div>
+                      <div class="dd-item">Duplicate</div>
+                      <div class="dd-item">Compare to previous</div>
+                      <div class="dd-item">Compare to another version</div>
+                      <div class="dd-item" onclick="showRollbackConfirm()">Rollback to this version</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="td-real">V8</span></td>
+              <td><span class="td-real">V8_09-03-26</span></td>
+              <td><span class="td-real">5 changes</span></td>
+              <td><span class="td-real">m.johnson@acme.com</span></td>
+              <td><span class="td-real">09/03/2026 12:34</span></td>
+              <td><span class="version-tag" style="background:#F3F4F6;color:#6B7280;">Previous</span></td>
+              <td>
+                <div style="position:relative;" class="row-action-wrap">
+                  <button class="btn btn-ghost-sm" onclick="toggleRowMenu(this)">⋯</button>
+                  <div class="nav-dropdown row-menu" style="display:none;right:0;left:auto;top:36px;">
+                    <div class="dd-item">View Details</div>
+                    <div class="dd-item">Duplicate</div>
+                    <div class="dd-item">Compare to previous</div>
+                    <div class="dd-item">Compare to another version</div>
+                    <div class="dd-item" onclick="showRollbackConfirm()">Rollback to this version</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="td-real">V7</span></td>
+              <td><span class="td-real">V7_09-03-26</span></td>
+              <td><span class="td-real">3 changes</span></td>
+              <td><span class="td-real">j.smith@acme.com</span></td>
+              <td><span class="td-real">09/03/2026 08:01</span></td>
+              <td><span class="version-tag" style="background:#F3F4F6;color:#6B7280;">Previous</span></td>
+              <td>
+                <div style="position:relative;" class="row-action-wrap">
+                  <button class="btn btn-ghost-sm" onclick="toggleRowMenu(this)">⋯</button>
+                  <div class="nav-dropdown row-menu" style="display:none;right:0;left:auto;top:36px;">
+                    <div class="dd-item">View Details</div>
+                    <div class="dd-item">Duplicate</div>
+                    <div class="dd-item">Compare to previous</div>
+                    <div class="dd-item">Compare to another version</div>
+                    <div class="dd-item" onclick="showRollbackConfirm()">Rollback to this version</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="table-pagination">
+          <span>1–4 of 10</span>
+          <span>Rows per page: <strong>10</strong></span>
+          <div class="page-nums"><span class="current-page">1</span><span>2</span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ROLLBACK CONFIRM DIALOG -->
+  <div id="rollback-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:8px;padding:32px;width:520px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="font-size:18px;font-weight:600;color:#212121;margin-bottom:12px;">Create Rollback Version from V9?</div>
+      <div style="font-size:14px;color:#606A73;margin-bottom:16px;line-height:1.5;">
+        A <strong>new stage version</strong> will be created containing all changes from V9_09-03-26. You can then review the changes, deselect any items you don't want, and promote to production when ready.
+      </div>
+      <div style="background:#FEF3C7;border-radius:4px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#92400E;border-left:4px solid #F59E0B;">
+        <strong>This creates a new version:</strong> V11 (Rollback from V9)<br>
+        <span>Original V9 in production remains unchanged.</span>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="hideRollbackConfirm()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmRollback()">Create Rollback Version</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /s08 -->
+
+
+<!-- ════════════════════════════════════════════════
+     PROMOTE CONFIRMATION MODAL
+═════════════════════════════════════════════════ -->
+<div id="promote-confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:8px;padding:32px;width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="font-size:18px;font-weight:600;color:#212121;margin-bottom:8px;">Promote V10 to Production?</div>
+    <div style="font-size:14px;color:#606A73;margin-bottom:16px;">
+      Selected changes will be applied to production immediately. This action cannot be undone.
+    </div>
+    <div style="background:#F2F6FB;border-radius:4px;padding:12px 16px;margin-bottom:24px;font-size:13px;color:#212121;">
+      <strong>Version V10_11-03-26</strong> &nbsp;·&nbsp; <span id="promote-count">3</span> changes selected<br>
+      <span style="color:#606A73;">Unselected changes remain in the stage version.</span>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="hidePromoteConfirm()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmPromote()">Promote to Production</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════
+     SCREEN 01  -  SETTINGS
+═════════════════════════════════════════════════ -->
+<div id="s01" class="screen">
+  <header class="top-nav black" id="nav-s01"></header>
+  <div class="page-body">
+    <aside class="sidebar" style="min-height:1234px;" id="sidebar-s01"></aside>
+    <main class="page-content">
+      <div class="breadcrumb-bar">
+        <a href="#">Account</a>
+        <span class="sep"> / </span>
+        <a href="#">Settings</a>
+        <span class="sep"> / </span>
+        <span class="current">Stage and Version Control Settings</span>
+        <span class="timestamp">Generated on 12 Apr 26 09:14:53 · Refresh</span>
+      </div>
+      <div class="page-header">
+        <div class="page-header-left">
+          <button class="back-btn" onclick="showScreen('s02')">← Back</button>
+          <div class="page-title">Stage and Version Control Settings</div>
+          <div class="page-desc">Configure staging environment behavior and version retention for this account. <a href="#" class="learn-more">Learn more ↗</a></div>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary">Cancel</button>
+          <button class="btn btn-primary">Save Changes</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-text">
+            <div class="card-title">Stage Settings</div>
+            <div class="card-subtitle">Configure how staging versions are created and isolated</div>
+          </div>
+          <span class="card-close">✕</span>
+        </div>
+        <div class="card-section">
+          <div class="section-title">General <span style="color:#606A73;font-size:14px;font-weight:400;">ℹ</span></div>
+          <div class="form-row">
+            <div class="form-field">
+              <div class="form-label">Default version name prefix <span class="req">*</span></div>
+              <input class="form-input" type="text" value="V{n}_{date}" />
+              <div class="form-hint">Used for auto-naming new stage versions</div>
+            </div>
+            <div class="form-field">
+              <div class="form-label">Max concurrent stage versions</div>
+              <input class="form-input" type="number" value="3" style="width:100px;" />
+              <div class="form-hint">Per website. <a href="#" class="form-link">Clear</a></div>
+            </div>
+          </div>
+          <div class="checkbox-row">
+            <input type="checkbox" id="auto-snapshot" checked />
+            <label for="auto-snapshot">Auto-snapshot production before each promote</label>
+          </div>
+          <div class="checkbox-row">
+            <input type="checkbox" id="require-review" checked />
+            <label for="require-review">Require diff review before promoting <span class="req">*</span></label>
+          </div>
+        </div>
+        <div class="card-section">
+          <div class="section-title">Traffic Routing in Stage</div>
+          <div class="section-subtitle">Choose how traffic is handled while in stage mode. <a href="#" style="color:#285AE6;font-size:12px;">Read more</a></div>
+          <div class="radio-group">
+            <label class="radio-option selected">
+              <input type="radio" name="routing" checked />
+              <div>
+                <div class="radio-label">Mirror Production Traffic (Shadow Mode)</div>
+                <div class="radio-sublabel">Stage receives a copy of real traffic  -  no impact to users</div>
+              </div>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="routing" />
+              <div>
+                <div class="radio-label">Isolated  -  Internal Access Only</div>
+                <div class="radio-sublabel">Stage version only accessible via Imperva test IPs</div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-text">
+            <div class="card-title">Version Retention</div>
+            <div class="card-subtitle">Control how long versions are kept and rollback availability</div>
+          </div>
+        </div>
+        <div class="card-section">
+          <div class="form-row">
+            <div class="form-field">
+              <div class="form-label">Retain versions for <span class="req">*</span></div>
+              <input class="form-input" type="number" value="90" style="width:120px;" />
+              <div class="form-hint">Days. Older versions are archived.</div>
+            </div>
+            <div class="form-field">
+              <div class="form-label">Max versions stored per website</div>
+              <input class="form-input" type="number" value="50" style="width:120px;" />
+            </div>
+          </div>
+          <div class="checkbox-row">
+            <input type="checkbox" id="rollback-creates-version" checked disabled />
+            <label for="rollback-creates-version">Rollback creates a new stage version (recommended) <span class="req">*</span></label>
+          </div>
+          <div style="background:#F2F6FB;border-radius:4px;padding:10px 14px;font-size:12px;color:#606A73;margin-top:4px;">
+            When rolling back, a new stage version is opened based on the selected historical version. You can add additional changes before promoting  -  no direct overwrites to production.
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div><!-- /s01 -->
+
+
+<!-- ════════════════════════════════════════════════
+     SCREEN 07R  -  REDESIGNED REVIEW CHANGES
+     Design exploration — access by clicking the
+     page title on screen 07.
+═════════════════════════════════════════════════ -->
+<div id="s07r" class="screen diff-overlay">
+
+  <!-- Blue top bar -->
+  <div class="top-nav blue" style="width:100%;flex-shrink:0;">
+    <button class="btn" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.35);padding:0 14px;height:34px;font-size:13px;margin-right:16px;" onclick="showScreen('s04')">← Back</button>
+    <div>
+      <div style="font-size:15px;font-weight:600;color:#fff;line-height:1.2;">Review Changes – Ready to Promote</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.7);">Account Level · Version V10_11-03-26</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-left:28px;">
+      <span class="diff-badge prod">PROD</span>
+      <span class="diff-arrow">→</span>
+      <span class="diff-badge stage">V10_11-03-26 STAGE</span>
+    </div>
+  </div>
+
+  <!-- Stats bar with dynamic selection-aware badges -->
+  <div class="r-stats-bar" style="flex-shrink:0;">
+    <span class="r-badge r-badge-add">+<span id="r-count-add">3</span> Added</span>
+    <span class="r-badge r-badge-mod">~<span id="r-count-mod">6</span> Modified</span>
+    <span class="r-badge r-badge-del">−<span id="r-count-del">1</span> Deleted</span>
+    <div style="margin-left:auto;font-size:12px;color:#A3ADB6;">Counts reflect your current selection</div>
+  </div>
+
+  <!-- Filter + search bar -->
+  <div class="r-filter-bar">
+    <span style="font-size:12px;color:#6B7280;font-weight:500;flex-shrink:0;">Filter:</span>
+    <div class="r-filter-chips">
+      <button class="r-chip r-chip-all active" onclick="rFilterChange('all',this)">All</button>
+      <button class="r-chip r-chip-add" onclick="rFilterChange('add',this)"><span style="color:#16A34A;">+</span> ADD</button>
+      <button class="r-chip r-chip-mod" onclick="rFilterChange('mod',this)"><span style="color:#D97706;">~</span> MOD</button>
+      <button class="r-chip r-chip-del" onclick="rFilterChange('del',this)"><span style="color:#DC2626;">−</span> DEL</button>
+    </div>
+    <div class="r-search">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6.5 1A5.5 5.5 0 1 0 12 6.5 5.506 5.506 0 0 0 6.5 1zm4.457 9.043L15 14.086 14.086 15l-4.043-4.043A5.5 5.5 0 1 1 10.957 10.043z" fill="#9CA3AF"/></svg>
+      <input type="text" placeholder="Search changes…" oninput="rSearchChange(this.value)" />
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="diff-body" style="flex:1;min-height:0;">
+
+    <!-- LEFT: change list -->
+    <div class="diff-main" id="r-diff-main">
+
+      <!-- ── SECTION: Website Level Changes ── -->
+      <div class="r-section">
+        <div class="r-section-header" onclick="rToggleSection(this)">
+          <input type="checkbox" checked onclick="event.stopPropagation();rSectionCbClick(this)" style="accent-color:#041295;" />
+          <span class="r-section-title">Website Level Changes</span>
+          <span class="diff-change-count">8 changes</span>
+          <span class="r-section-chevron">▾</span>
+        </div>
+
+        <!-- Sub: Security Rules -->
+        <div class="r-subsection" id="r-sub-security">
+          <div class="r-subsection-header" onclick="rToggleSubsection(this)">
+            <input type="checkbox" checked onclick="event.stopPropagation();rSubsectionCbClick(this)" style="accent-color:#041295;" />
+            <span class="r-subsection-title">Security Rules</span>
+            <span class="diff-change-count">4 changes</span>
+            <span class="r-subsection-chevron">▾</span>
+          </div>
+
+          <!-- c1: MOD — SQL Injection Block -->
+          <div class="r-diff-row" data-type="mod" data-search="waf rule sql injection block severity confidence">
+            <div class="r-diff-row-check"><input type="checkbox" checked id="r-c1" onchange="rRowCbChange(this)" /></div>
+            <div class="r-type-accent mod"></div>
+            <div class="r-row-main">
+              <div class="r-row-title-bar">
+                <span class="r-row-title">WAF Rule: SQL Injection Block</span>
+                <span class="r-type-badge mod">MOD<span class="r-tooltip">Existing item modified in this stage version</span></span>
+                <div class="r-row-actions">
+                  <button class="r-kebab-btn" onclick="rToggleMeta('r-meta-c1',this)">⋯</button>
+                  <div class="r-meta-popover" id="r-meta-c1">
+                    <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">j.smith@acme.com</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Mar 11, 2026 · 14:22</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                  </div>
+                  <button class="r-trash-btn" onclick="rDeleteRow(this)">🗑<span class="r-tooltip">Remove from stage</span></button>
+                </div>
+              </div>
+              <div class="r-diff-cells">
+                <div class="r-diff-cell old-cell">
+                  <div class="r-cell-label">Production</div>
+                  <div class="r-cell-value">Action: Block · Severity: <span class="r-changed old">High</span> · Confidence: <span class="r-changed old">70%</span></div>
+                </div>
+                <div class="r-diff-cell new-cell">
+                  <div class="r-cell-label">Stage (V10)</div>
+                  <div class="r-cell-value">Action: Block · Severity: <span class="r-changed new">Critical</span> · Confidence: <span class="r-changed new">90%</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- c2: MOD — XSS Detection -->
+          <div class="r-diff-row" data-type="mod" data-search="waf rule xss detection exception api">
+            <div class="r-diff-row-check"><input type="checkbox" checked id="r-c2" onchange="rRowCbChange(this)" /></div>
+            <div class="r-type-accent mod"></div>
+            <div class="r-row-main">
+              <div class="r-row-title-bar">
+                <span class="r-row-title">WAF Rule: XSS Detection</span>
+                <span class="r-type-badge mod">MOD<span class="r-tooltip">Existing item modified in this stage version</span></span>
+                <div class="r-row-actions">
+                  <button class="r-kebab-btn" onclick="rToggleMeta('r-meta-c2',this)">⋯</button>
+                  <div class="r-meta-popover" id="r-meta-c2">
+                    <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">m.johnson@acme.com</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Mar 10, 2026 · 09:47</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                  </div>
+                  <button class="r-trash-btn" onclick="rDeleteRow(this)">🗑<span class="r-tooltip">Remove from stage</span></button>
+                </div>
+              </div>
+              <div class="r-diff-cells">
+                <div class="r-diff-cell old-cell">
+                  <div class="r-cell-label">Production</div>
+                  <div class="r-cell-value">Exception: <span class="r-changed old">api/v1/comment</span> · Status: Active</div>
+                </div>
+                <div class="r-diff-cell new-cell">
+                  <div class="r-cell-label">Stage (V10)</div>
+                  <div class="r-cell-value">Exception: <span class="r-changed new">api/v2/comment</span> · Status: Active</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- c3: ADD — Geo-Block -->
+          <div class="r-diff-row" data-type="add" data-search="waf rule geo-block high-risk regions kp ir ru block">
+            <div class="r-diff-row-check"><input type="checkbox" checked id="r-c3" onchange="rRowCbChange(this)" /></div>
+            <div class="r-type-accent add"></div>
+            <div class="r-row-main">
+              <div class="r-row-title-bar">
+                <span class="r-row-title">WAF Rule: Geo-Block – High-Risk Regions</span>
+                <span class="r-type-badge add">ADD<span class="r-tooltip">New item added in this stage version</span></span>
+                <div class="r-row-actions">
+                  <button class="r-kebab-btn" onclick="rToggleMeta('r-meta-c3',this)">⋯</button>
+                  <div class="r-meta-popover" id="r-meta-c3">
+                    <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">j.smith@acme.com</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Mar 09, 2026 · 11:15</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                  </div>
+                  <button class="r-trash-btn" onclick="rDeleteRow(this)">🗑<span class="r-tooltip">Remove from stage</span></button>
+                </div>
+              </div>
+              <div class="r-diff-cells single">
+                <div class="r-diff-cell add-cell">
+                  <div class="r-cell-label">New in Stage (V10)</div>
+                  <div class="r-cell-value">Blocked regions: KP, IR, RU · Action: Block · Log: Enabled</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- c4: DEL — Legacy IP Whitelist -->
+          <div class="r-diff-row" data-type="del" data-search="waf rule legacy ip whitelist removed deprecated acl">
+            <div class="r-diff-row-check"><input type="checkbox" checked id="r-c4" onchange="rRowCbChange(this)" /></div>
+            <div class="r-type-accent del"></div>
+            <div class="r-row-main">
+              <div class="r-row-title-bar">
+                <span class="r-row-title">WAF Rule: Legacy IP Whitelist v1</span>
+                <span class="r-type-badge del">DEL<span class="r-tooltip">Item removed in this stage version</span></span>
+                <div class="r-row-actions">
+                  <button class="r-kebab-btn" onclick="rToggleMeta('r-meta-c4',this)">⋯</button>
+                  <div class="r-meta-popover" id="r-meta-c4">
+                    <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">j.smith@acme.com</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Mar 08, 2026 · 16:03</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                  </div>
+                  <button class="r-trash-btn" onclick="rDeleteRow(this)">🗑<span class="r-tooltip">Remove from stage</span></button>
+                </div>
+              </div>
+              <div class="r-diff-cells single">
+                <div class="r-diff-cell del-cell">
+                  <div class="r-cell-label">Removed in Stage (V10)</div>
+                  <div class="r-cell-value">Rule ID: WAF-034 · Deprecated – replaced by ACL-007</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /r-sub-security -->
+
+        <!-- Sub: Cache Settings -->
+        <div class="r-subsection" id="r-sub-cache">
+          <div class="r-subsection-header" onclick="rToggleSubsection(this)">
+            <input type="checkbox" checked onclick="event.stopPropagation();rSubsectionCbClick(this)" style="accent-color:#041295;" />
+            <span class="r-subsection-title">Cache Settings</span>
+            <span class="diff-change-count">2 changes</span>
+            <span class="r-subsection-chevron">▾</span>
+          </div>
+
+          <!-- c5: MOD — Cache TTL -->
+          <div class="r-diff-row" data-type="mod" data-search="cache ttl api v2 300s 60s">
+            <div class="r-diff-row-check"><input type="checkbox" checked id="r-c5" onchange="rRowCbChange(this)" /></div>
+            <div class="r-type-accent mod"></div>
+            <div class="r-row-main">
+              <div class="r-row-title-bar">
+                <span class="r-row-title">Cache TTL – /api/v2/*</span>
+                <span class="r-type-badge mod">MOD<span class="r-tooltip">Existing item modified in this stage version</span></span>
+                <div class="r-row-actions">
+                  <button class="r-kebab-btn" onclick="rToggleMeta('r-meta-c5',this)">⋯</button>
+                  <div class="r-meta-popover" id="r-meta-c5">
+                    <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">j.smith@acme.com</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Mar 07, 2026 · 10:30</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                  </div>
+                  <button class="r-trash-btn" onclick="rDeleteRow(this)">🗑<span class="r-tooltip">Remove from stage</span></button>
+                </div>
+              </div>
+              <div class="r-diff-cells">
+                <div class="r-diff-cell old-cell">
+                  <div class="r-cell-label">Production</div>
+                  <div class="r-cell-value"><span class="r-changed old">300s (5 min)</span></div>
+                </div>
+                <div class="r-diff-cell new-cell">
+                  <div class="r-cell-label">Stage (V10)</div>
+                  <div class="r-cell-value"><span class="r-changed new">60s (1 min)</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- c6: ADD — Cache Rule Static Assets (starts unchecked) -->
+          <div class="r-diff-row" data-type="add" data-search="cache rule static assets path ttl etag">
+            <div class="r-diff-row-check"><input type="checkbox" id="r-c6" onchange="rRowCbChange(this)" /></div>
+            <div class="r-type-accent add"></div>
+            <div class="r-row-main">
+              <div class="r-row-title-bar">
+                <span class="r-row-title">Cache Rule – Static Assets</span>
+                <span class="r-type-badge add">ADD<span class="r-tooltip">New item added in this stage version</span></span>
+                <div class="r-row-actions">
+                  <button class="r-kebab-btn" onclick="rToggleMeta('r-meta-c6',this)">⋯</button>
+                  <div class="r-meta-popover" id="r-meta-c6">
+                    <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">m.johnson@acme.com</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Mar 06, 2026 · 15:12</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                  </div>
+                  <button class="r-trash-btn" onclick="rDeleteRow(this)">🗑<span class="r-tooltip">Remove from stage</span></button>
+                </div>
+              </div>
+              <div class="r-diff-cells single">
+                <div class="r-diff-cell add-cell">
+                  <div class="r-cell-label">New in Stage (V10)</div>
+                  <div class="r-cell-value">Path: /static/** · TTL: 86400s · Headers: Cache-Control, ETag</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /r-sub-cache -->
+
+        <!-- Sub: shop.acme-corp.com -->
+        <div class="r-subsection" id="r-sub-shop">
+          <div class="r-subsection-header" onclick="rToggleSubsection(this)">
+            <input type="checkbox" checked onclick="event.stopPropagation();rSubsectionCbClick(this)" style="accent-color:#041295;" />
+            <span class="r-subsection-title">shop.acme-corp.com <span style="font-weight:400;color:#9CA3AF;">(756362)</span></span>
+            <span class="diff-change-count">2 changes</span>
+            <span class="r-subsection-chevron">▾</span>
+          </div>
+
+          <!-- c7: MOD — Rate Limiting Checkout -->
+          <div class="r-diff-row" data-type="mod" data-search="rate limiting checkout shop threshold req min">
+            <div class="r-diff-row-check"><input type="checkbox" checked id="r-c7" onchange="rRowCbChange(this)" /></div>
+            <div class="r-type-accent mod"></div>
+            <div class="r-row-main">
+              <div class="r-row-title-bar">
+                <span class="r-row-title">Applied Policy: Rate Limiting – Checkout</span>
+                <span class="r-type-badge mod">MOD<span class="r-tooltip">Existing item modified in this stage version</span></span>
+                <div class="r-row-actions">
+                  <button class="r-kebab-btn" onclick="rToggleMeta('r-meta-c7',this)">⋯</button>
+                  <div class="r-meta-popover" id="r-meta-c7">
+                    <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">j.smith@acme.com</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Mar 05, 2026 · 08:55</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                  </div>
+                  <button class="r-trash-btn" onclick="rDeleteRow(this)">🗑<span class="r-tooltip">Remove from stage</span></button>
+                </div>
+              </div>
+              <div class="r-diff-cells">
+                <div class="r-diff-cell old-cell">
+                  <div class="r-cell-label">Production</div>
+                  <div class="r-cell-value">Threshold: <span class="r-changed old">100</span> req/min</div>
+                </div>
+                <div class="r-diff-cell new-cell">
+                  <div class="r-cell-label">Stage (V10)</div>
+                  <div class="r-cell-value">Threshold: <span class="r-changed new">50</span> req/min</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- c8: ADD — Cart Abuse Detection -->
+          <div class="r-diff-row" data-type="add" data-search="cart abuse detection bot captcha shop policy">
+            <div class="r-diff-row-check"><input type="checkbox" checked id="r-c8" onchange="rRowCbChange(this)" /></div>
+            <div class="r-type-accent add"></div>
+            <div class="r-row-main">
+              <div class="r-row-title-bar">
+                <span class="r-row-title">Applied Policy: Cart Abuse Detection</span>
+                <span class="r-type-badge add">ADD<span class="r-tooltip">New item added in this stage version</span></span>
+                <div class="r-row-actions">
+                  <button class="r-kebab-btn" onclick="rToggleMeta('r-meta-c8',this)">⋯</button>
+                  <div class="r-meta-popover" id="r-meta-c8">
+                    <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">m.johnson@acme.com</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Mar 04, 2026 · 17:20</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                  </div>
+                  <button class="r-trash-btn" onclick="rDeleteRow(this)">🗑<span class="r-tooltip">Remove from stage</span></button>
+                </div>
+              </div>
+              <div class="r-diff-cells single">
+                <div class="r-diff-cell add-cell">
+                  <div class="r-cell-label">New in Stage (V10)</div>
+                  <div class="r-cell-value">Policy ID: BOT-011 · Action: CAPTCHA Challenge</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /r-sub-shop -->
+      </div><!-- /Website Level Changes -->
+
+      <!-- ── SECTION: Account Level Changes ── -->
+      <div class="r-section">
+        <div class="r-section-header" onclick="rToggleSection(this)">
+          <input type="checkbox" checked onclick="event.stopPropagation();rSectionCbClick(this)" style="accent-color:#041295;" />
+          <span class="r-section-title">Account Level Changes</span>
+          <span class="diff-change-count">4 changes</span>
+          <span class="r-section-chevron">▾</span>
+        </div>
+
+        <!-- Sub: WAF Policies -->
+        <div class="r-subsection" id="r-sub-waf">
+          <div class="r-subsection-header" onclick="rToggleSubsection(this)">
+            <input type="checkbox" checked onclick="event.stopPropagation();rSubsectionCbClick(this)" style="accent-color:#041295;" />
+            <span class="r-subsection-title">WAF Policies</span>
+            <span class="diff-change-count">2 changes</span>
+            <span class="r-subsection-chevron">▾</span>
+          </div>
+
+          <!-- c9: MOD — Global WAF Policy -->
+          <div class="r-diff-row" data-type="mod" data-search="global waf policy mode detection prevention exceptions">
+            <div class="r-diff-row-check"><input type="checkbox" checked id="r-c9" onchange="rRowCbChange(this)" /></div>
+            <div class="r-type-accent mod"></div>
+            <div class="r-row-main">
+              <div class="r-row-title-bar">
+                <span class="r-row-title">Policy: Global WAF Policy</span>
+                <span class="r-type-badge mod">MOD<span class="r-tooltip">Existing item modified in this stage version</span></span>
+                <div class="r-row-actions">
+                  <button class="r-kebab-btn" onclick="rToggleMeta('r-meta-c9',this)">⋯</button>
+                  <div class="r-meta-popover" id="r-meta-c9">
+                    <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">j.smith@acme.com</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Mar 03, 2026 · 12:40</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                  </div>
+                  <button class="r-trash-btn" onclick="rDeleteRow(this)">🗑<span class="r-tooltip">Remove from stage</span></button>
+                </div>
+              </div>
+              <div class="r-diff-cells">
+                <div class="r-diff-cell old-cell">
+                  <div class="r-cell-label">Production</div>
+                  <div class="r-cell-value">Mode: <span class="r-changed old">Detection</span> · Exceptions: 3</div>
+                </div>
+                <div class="r-diff-cell new-cell">
+                  <div class="r-cell-label">Stage (V10)</div>
+                  <div class="r-cell-value">Mode: <span class="r-changed new">Prevention</span> · Exceptions: 3</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- c10: ADD — OWASP Ruleset -->
+          <div class="r-diff-row" data-type="add" data-search="owasp top 10 2025 ruleset waf block all sites">
+            <div class="r-diff-row-check"><input type="checkbox" checked id="r-c10" onchange="rRowCbChange(this)" /></div>
+            <div class="r-type-accent add"></div>
+            <div class="r-row-main">
+              <div class="r-row-title-bar">
+                <span class="r-row-title">Policy: OWASP Top 10 – 2025 Ruleset</span>
+                <span class="r-type-badge add">ADD<span class="r-tooltip">New item added in this stage version</span></span>
+                <div class="r-row-actions">
+                  <button class="r-kebab-btn" onclick="rToggleMeta('r-meta-c10',this)">⋯</button>
+                  <div class="r-meta-popover" id="r-meta-c10">
+                    <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">j.smith@acme.com</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Mar 02, 2026 · 09:18</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                  </div>
+                  <button class="r-trash-btn" onclick="rDeleteRow(this)">🗑<span class="r-tooltip">Remove from stage</span></button>
+                </div>
+              </div>
+              <div class="r-diff-cells single">
+                <div class="r-diff-cell add-cell">
+                  <div class="r-cell-label">New in Stage (V10)</div>
+                  <div class="r-cell-value">Rule count: 52 · Mode: Block · Applied to: all sites</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /r-sub-waf -->
+
+        <!-- Sub: Bot Protection Policies -->
+        <div class="r-subsection" id="r-sub-bot">
+          <div class="r-subsection-header" onclick="rToggleSubsection(this)">
+            <input type="checkbox" checked onclick="event.stopPropagation();rSubsectionCbClick(this)" style="accent-color:#041295;" />
+            <span class="r-subsection-title">Bot Protection Policies</span>
+            <span class="diff-change-count">2 changes</span>
+            <span class="r-subsection-chevron">▾</span>
+          </div>
+
+          <!-- c11: MOD — Bot Detection API -->
+          <div class="r-diff-row" data-type="mod" data-search="bot detection api endpoints risk threshold block challenge">
+            <div class="r-diff-row-check"><input type="checkbox" checked id="r-c11" onchange="rRowCbChange(this)" /></div>
+            <div class="r-type-accent mod"></div>
+            <div class="r-row-main">
+              <div class="r-row-title-bar">
+                <span class="r-row-title">Bot Detection – API Endpoints</span>
+                <span class="r-type-badge mod">MOD<span class="r-tooltip">Existing item modified in this stage version</span></span>
+                <div class="r-row-actions">
+                  <button class="r-kebab-btn" onclick="rToggleMeta('r-meta-c11',this)">⋯</button>
+                  <div class="r-meta-popover" id="r-meta-c11">
+                    <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">m.johnson@acme.com</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Mar 01, 2026 · 16:55</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                  </div>
+                  <button class="r-trash-btn" onclick="rDeleteRow(this)">🗑<span class="r-tooltip">Remove from stage</span></button>
+                </div>
+              </div>
+              <div class="r-diff-cells">
+                <div class="r-diff-cell old-cell">
+                  <div class="r-cell-label">Production</div>
+                  <div class="r-cell-value">Risk threshold: <span class="r-changed old">85</span> · Action: <span class="r-changed old">Block</span></div>
+                </div>
+                <div class="r-diff-cell new-cell">
+                  <div class="r-cell-label">Stage (V10)</div>
+                  <div class="r-cell-value">Risk threshold: <span class="r-changed new">72</span> · Action: <span class="r-changed new">Challenge</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- c12: DEL — JS Injection Legacy (starts unchecked) -->
+          <div class="r-diff-row" data-type="del" data-search="js injection legacy config bot removed login checkout">
+            <div class="r-diff-row-check"><input type="checkbox" id="r-c12" onchange="rRowCbChange(this)" /></div>
+            <div class="r-type-accent del"></div>
+            <div class="r-row-main">
+              <div class="r-row-title-bar">
+                <span class="r-row-title">JS Injection – Legacy Config</span>
+                <span class="r-type-badge del">DEL<span class="r-tooltip">Item removed in this stage version</span></span>
+                <div class="r-row-actions">
+                  <button class="r-kebab-btn" onclick="rToggleMeta('r-meta-c12',this)">⋯</button>
+                  <div class="r-meta-popover" id="r-meta-c12">
+                    <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">j.smith@acme.com</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Feb 28, 2026 · 14:30</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                  </div>
+                  <button class="r-trash-btn" onclick="rDeleteRow(this)">🗑<span class="r-tooltip">Remove from stage</span></button>
+                </div>
+              </div>
+              <div class="r-diff-cells single">
+                <div class="r-diff-cell del-cell">
+                  <div class="r-cell-label">Removed in Stage (V10)</div>
+                  <div class="r-cell-value">Paths: /login, /checkout · replaced by updated config</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /r-sub-bot -->
+      </div><!-- /Account Level Changes -->
+
+    </div><!-- /r-diff-main -->
+
+
+  </div><!-- /diff-body -->
+
+  <!-- Sticky bottom promote strip -->
+  <div class="r-promote-strip">
+    <div class="r-strip-info">
+      <span class="r-strip-selected"><span id="r-strip-count">10</span> changes selected</span>
+      <span class="r-strip-note">Unselected changes stay in stage and can be promoted later.</span>
+    </div>
+    <button class="btn btn-primary" style="height:40px;padding:0 28px;font-size:14px;flex-shrink:0;" onclick="showPromoteConfirm()">Promote to Production →</button>
+  </div>
+
+</div><!-- /s07r -->
+
+
+<!-- ════════════════════════════════════════════════
+     SCREEN 07R-B  -  API ABUSE TASK SCENARIO
+     2-diff version: 1 security rule + 1 WAF policy
+     Scenario: "API endpoints are being abused — add a
+     rate-block rule and a stricter WAF policy."
+═════════════════════════════════════════════════ -->
+<div id="s07rb" class="screen diff-overlay">
+
+  <!-- Blue top bar -->
+  <div class="top-nav blue" style="width:100%;flex-shrink:0;">
+    <button class="btn" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.35);padding:0 14px;height:34px;font-size:13px;margin-right:16px;" onclick="showScreen('s04')">← Back</button>
+    <div>
+      <div style="font-size:15px;font-weight:600;color:#fff;line-height:1.2;">Review Changes – Ready to Promote</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.7);">Account Level · Version V10_11-03-26</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-left:28px;">
+      <span class="diff-badge prod">PROD</span>
+      <span class="diff-arrow">→</span>
+      <span class="diff-badge stage">V10_11-03-26 STAGE</span>
+    </div>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="r-stats-bar" style="flex-shrink:0;">
+    <span class="r-badge r-badge-add">+<span id="rb-count-add">2</span> Added</span>
+    <span class="r-badge r-badge-mod">~<span id="rb-count-mod">1</span> Modified</span>
+    <span class="r-badge r-badge-del">−<span id="rb-count-del">1</span> Deleted</span>
+    <div style="margin-left:auto;font-size:12px;color:#A3ADB6;">Counts reflect your current selection</div>
+  </div>
+
+  <!-- Filter + search bar -->
+  <div class="r-filter-bar">
+    <span style="font-size:12px;color:#6B7280;font-weight:500;flex-shrink:0;">Filter:</span>
+    <div class="r-filter-chips">
+      <button class="r-chip r-chip-all active" onclick="rbFilterChange('all',this)">All</button>
+      <button class="r-chip r-chip-add" onclick="rbFilterChange('add',this)"><span style="color:#16A34A;">+</span> ADD</button>
+      <button class="r-chip r-chip-mod" onclick="rbFilterChange('mod',this)"><span style="color:#D97706;">~</span> MOD</button>
+      <button class="r-chip r-chip-del" onclick="rbFilterChange('del',this)"><span style="color:#DC2626;">−</span> DEL</button>
+    </div>
+    <div class="r-search">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6.5 1A5.5 5.5 0 1 0 12 6.5 5.506 5.506 0 0 0 6.5 1zm4.457 9.043L15 14.086 14.086 15l-4.043-4.043A5.5 5.5 0 1 1 10.957 10.043z" fill="#9CA3AF"/></svg>
+      <input type="text" placeholder="Search changes…" oninput="rbSearchChange(this.value)" />
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="diff-body" style="flex:1;min-height:0;">
+
+    <!-- LEFT: change list -->
+    <div class="diff-main" id="rb-diff-main">
+
+      <!-- ── SECTION: Website Level Changes ── -->
+      <div class="r-section">
+        <div class="r-section-header" onclick="rToggleSection(this)">
+          <input type="checkbox" checked onclick="event.stopPropagation();rbSectionCbClick(this)" style="accent-color:#041295;" />
+          <span class="r-section-title">Website Level Changes</span>
+          <span class="diff-change-count">2 changes</span>
+          <span class="r-section-chevron">▾</span>
+        </div>
+
+        <!-- Sub: api.acme-corp.com (123478) -->
+        <div class="r-subsection">
+          <div class="r-subsection-header" onclick="rToggleSubsection(this)">
+            <input type="checkbox" checked onclick="event.stopPropagation();rbSubsectionCbClick(this)" style="accent-color:#041295;" />
+            <span class="r-subsection-title">api.acme-corp.com <span style="font-weight:400;color:#9CA3AF;">(123478)</span></span>
+            <span class="diff-change-count">1 change</span>
+            <span class="r-subsection-chevron">▾</span>
+          </div>
+
+          <div class="r-change-group">
+            <div class="r-change-group-header">Security Rules</div>
+
+            <!-- rb-c1: ADD — API Rate Abuse Block -->
+            <div class="r-diff-row" data-type="add" data-search="security rule api rate abuse block threshold suspicious traffic">
+              <div class="r-type-accent add"></div>
+              <div class="r-row-main">
+                <div class="r-row-title-bar">
+                  <span class="r-row-title">Security Rule: API Rate Abuse Block</span>
+                  <span class="r-type-badge add">ADD<span class="r-tooltip">New item added in this stage version</span></span>
+                  <div class="r-row-actions">
+                    <button class="r-kebab-btn" onclick="rToggleMeta('rb-meta-c1',this)">⋯</button>
+                    <div class="r-meta-popover" id="rb-meta-c1">
+                      <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">j.smith@acme.com</div></div>
+                      <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Mar 11, 2026 · 14:22</div></div>
+                      <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="r-diff-cells single">
+                  <div class="r-diff-cell add-cell">
+                    <div class="r-cell-label">New in Stage (V10)</div>
+                    <div class="r-cell-value">Path: /api/** · Threshold: 200 req/min per IP · Action: Block · Log: Enabled</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div><!-- /change-group Security Rules -->
+
+        </div><!-- /api.acme-corp.com -->
+
+        <!-- Sub: shop.acme-corp.com (756362) -->
+        <div class="r-subsection">
+          <div class="r-subsection-header" onclick="rToggleSubsection(this)">
+            <input type="checkbox" checked onclick="event.stopPropagation();rbSubsectionCbClick(this)" style="accent-color:#041295;" />
+            <span class="r-subsection-title">shop.acme-corp.com <span style="font-weight:400;color:#9CA3AF;">(756362)</span></span>
+            <span class="diff-change-count">1 change</span>
+            <span class="r-subsection-chevron">▾</span>
+          </div>
+
+          <div class="r-change-group">
+            <div class="r-change-group-header">Security Rules</div>
+
+            <!-- rb-c3: MOD — Bot Scraping Detection -->
+            <div class="r-diff-row" data-type="mod" data-search="security rule bot scraping detection action monitor block sensitivity threshold api">
+              <div class="r-type-accent mod"></div>
+              <div class="r-row-main">
+                <div class="r-row-title-bar">
+                  <span class="r-row-title">Security Rule: Bot Scraping Detection</span>
+                  <span class="r-type-badge mod">MOD<span class="r-tooltip">Existing item modified in this stage version</span></span>
+                  <div class="r-row-actions">
+                    <button class="r-kebab-btn" onclick="rToggleMeta('rb-meta-c3',this)">⋯</button>
+                    <div class="r-meta-popover" id="rb-meta-c3">
+                      <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">j.smith@acme.com</div></div>
+                      <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Mar 11, 2026 · 14:55</div></div>
+                      <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="r-diff-cells">
+                  <div class="r-diff-cell old-cell">
+                    <div class="r-cell-label">Production</div>
+                    <div class="r-cell-value">Action: <span class="r-changed old">Monitor</span> · Sensitivity: <span class="r-changed old">Low</span></div>
+                  </div>
+                  <div class="r-diff-cell new-cell">
+                    <div class="r-cell-label">Stage (V10)</div>
+                    <div class="r-cell-value">Action: <span class="r-changed new">Block</span> · Sensitivity: <span class="r-changed new">High</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div><!-- /change-group Security Rules -->
+
+        </div><!-- /shop.acme-corp.com -->
+      </div><!-- /Website Level Changes -->
+
+      <!-- ── SECTION: Account Level Changes ── -->
+      <div class="r-section">
+        <div class="r-section-header" onclick="rToggleSection(this)">
+          <input type="checkbox" checked onclick="event.stopPropagation();rbSectionCbClick(this)" style="accent-color:#041295;" />
+          <span class="r-section-title">Account Level Changes</span>
+          <span class="diff-change-count">2 changes</span>
+          <span class="r-section-chevron">▾</span>
+        </div>
+
+        <!-- Sub: WAF Policies -->
+        <div class="r-subsection">
+          <div class="r-subsection-header" onclick="rToggleSubsection(this)">
+            <input type="checkbox" checked id="rb-sub-cb-waf-policies" onclick="event.stopPropagation();rbSubsectionCbClick(this)" style="accent-color:#041295;" />
+            <span class="r-subsection-title">WAF Policies</span>
+            <span class="diff-change-count">2 changes</span>
+            <span class="r-subsection-chevron">▾</span>
+          </div>
+
+          <!-- rb-c2: ADD — Strict API Ruleset -->
+          <div class="r-diff-row" data-type="add" data-search="waf policy strict api ruleset owasp crs block all sites">
+            <div class="r-type-accent add"></div>
+            <div class="r-row-main">
+              <div class="r-row-title-bar">
+                <span class="r-row-title">WAF Policy: Strict API Ruleset</span>
+                <span class="r-type-badge add">ADD<span class="r-tooltip">New item added in this stage version</span></span>
+                <div class="r-row-actions">
+                  <button class="r-kebab-btn" onclick="rToggleMeta('rb-meta-c2',this)">⋯</button>
+                  <div class="r-meta-popover" id="rb-meta-c2">
+                    <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">j.smith@acme.com</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Mar 11, 2026 · 15:04</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                  </div>
+                </div>
+              </div>
+              <div class="r-diff-cells single">
+                <div class="r-diff-cell add-cell">
+                  <div class="r-cell-label">New in Stage (V10)</div>
+                  <div class="r-cell-value">Ruleset: CRS Strict Mode · Score threshold: 5 · Action: Block · Applied to: all sites</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- rb-c4: DEL — API Exception Allowlist -->
+          <div class="r-diff-row" data-type="del" data-search="waf policy api exception allowlist legacy bypass removed permissive">
+            <div class="r-type-accent del"></div>
+            <div class="r-row-main">
+              <div class="r-row-title-bar">
+                <span class="r-row-title">WAF Policy: API Exception Allowlist</span>
+                <span class="r-type-badge del">DEL<span class="r-tooltip">Item removed in this stage version</span></span>
+                <div class="r-row-actions">
+                  <button class="r-kebab-btn" onclick="rToggleMeta('rb-meta-c4',this)">⋯</button>
+                  <div class="r-meta-popover" id="rb-meta-c4">
+                    <div class="r-meta-row"><div class="r-meta-label">Author</div><div class="r-meta-value">j.smith@acme.com</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Changed</div><div class="r-meta-value">Mar 11, 2026 · 15:30</div></div>
+                    <div class="r-meta-row"><div class="r-meta-label">Ticket link</div><input class="r-meta-input" type="text" placeholder="Paste Jira or ticket URL…" /></div>
+                  </div>
+                </div>
+              </div>
+              <div class="r-diff-cells single">
+                <div class="r-diff-cell del-cell">
+                  <div class="r-cell-label">Removed in Stage (V10)</div>
+                  <div class="r-cell-value">Policy ID: WAF-EX-008 · Bypassed WAF inspection for /api/v1/** · Replaced by Strict API Ruleset</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /WAF Policies -->
+      </div><!-- /Account Level Changes -->
+
+    </div><!-- /rb-diff-main -->
+
+  </div><!-- /diff-body -->
+
+  <!-- Sticky bottom promote strip -->
+  <div class="r-promote-strip">
+    <div class="r-strip-info">
+      <span class="r-strip-selected"><span id="rb-strip-count">4</span> changes selected</span>
+      <span class="r-strip-note">Unselected changes stay in stage and can be promoted later.</span>
+    </div>
+    <button class="btn btn-primary" style="height:40px;padding:0 28px;font-size:14px;flex-shrink:0;" onclick="showPromoteConfirm()">Promote to Production →</button>
+  </div>
+
+</div><!-- /s07rb -->
+
+
+<script src="app.js"></script>
+</body>
+</html>
