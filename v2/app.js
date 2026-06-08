@@ -14,7 +14,7 @@ const LOGO_HTML = (() => {
 // variant: 'black' (prod) | 'blue' (stage)
 // versionLabel: string like 'V10_11-03-26' when in stage mode
 // accountDropdownOpen: true to render Account dropdown pre-open (Screen 03)
-function renderNav(id, variant = 'black', versionLabel = null, accountDropdownOpen = false) {
+function renderNav(id, _variant = 'black', versionLabel = null, accountDropdownOpen = false) {
   const el = document.getElementById(id);
   if (!el) return;
 
@@ -41,7 +41,7 @@ function renderNav(id, variant = 'black', versionLabel = null, accountDropdownOp
   // Account dropdown items differ by mode
   const accountItems = versionLabel
     ? `<div class="dd-header">Stage version</div>
-       <div class="dd-item" onclick="showDiff()">Review &amp; Promote changes</div>
+       <div class="dd-item" onclick="showDiffR()">Review &amp; Promote changes</div>
        <div class="dd-item" onclick="showScreen('s08')">Version History</div>
        <div class="dd-item" onclick="showScreen('s01')">Stage &amp; Version Settings</div>`
     : `<div class="dd-header">Account</div>
@@ -105,6 +105,22 @@ const WEBSITES_DATA = [
   { name: 'staging.acme-corp.com',id: '889921', bw: '0bps',    humans: '0',  bots: '0',    waf: '0',   created: '25 May 2022', status: 'inactive' },
 ];
 
+/* ─── A1: STAGE VERSIONS ───────────────────────────── */
+// Maps which sites are locked in which stage version (in-memory, prototype only)
+const STAGE_VERSIONS = [
+  { id: 'V10', name: 'V10_11-03-26', sites: ['api.acme-corp.com', 'shop.acme-corp.com'] },
+  { id: 'V11', name: 'V11_14-04-26', sites: ['auth.acme-corp.com'] },
+];
+
+function showSiteLockedDialog() {
+  const el = document.getElementById('site-locked-modal');
+  if (el) el.style.display = 'flex';
+}
+function hideSiteLockedDialog() {
+  const el = document.getElementById('site-locked-modal');
+  if (el) el.style.display = 'none';
+}
+
 function renderWebsitesTable(tableId, clickOverrides = {}) {
   const table = document.getElementById(tableId);
   if (!table) return;
@@ -122,8 +138,18 @@ function renderWebsitesTable(tableId, clickOverrides = {}) {
       </tr>
     </thead>
     <tbody>
-      ${WEBSITES_DATA.map((w, idx) => { const cs = clickOverrides[idx] !== undefined ? clickOverrides[idx] : w.clickScreen; return `
-        <tr ${cs ? `onclick="showScreen('${cs}')" class="row-clickable"` : ''}>
+      ${WEBSITES_DATA.map((w, idx) => {
+        const override = clickOverrides[idx];
+        const cs = override !== undefined ? override : w.clickScreen;
+        // Support both screen IDs (e.g. 's03') and function call strings (e.g. 'showSiteLockedDialog()')
+        const isFn = cs && cs.includes('(');
+        const rowAttrs = cs
+          ? (isFn
+              ? `onclick="${cs}" class="row-clickable"`
+              : `onclick="showScreen('${cs}')" class="row-clickable"`)
+          : '';
+        return `
+        <tr ${rowAttrs}>
           <td><input type="checkbox" onclick="event.stopPropagation()"/></td>
           <td><span class="td-real">${w.name}</span><br><span class="td-sub">${w.id}</span></td>
           <td><span class="td-real">${w.bw}</span></td>
@@ -236,9 +262,11 @@ function renderStageBanners() {
     const el = document.getElementById(id);
     if (!el) return;
     el.innerHTML = `
-      ⚠️ <strong>Staging Mode  -  V10_11-03-26</strong> · Changes here are isolated and won't affect production until you promote.
-      <button class="btn btn-ghost" style="margin-left:auto;font-size:12px;height:28px;flex-shrink:0;" onclick="showDiffR()">Review &amp; Promote →</button>
-      <button onclick="dismissStageBanner()" style="background:none;border:none;color:#92400E;font-size:16px;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0;" title="Dismiss">✕</button>
+      <strong title="Sites in this version: api.acme-corp.com, shop.acme-corp.com" style="cursor:default;">Staging Mode  -  V10_11-03-26</strong>
+      <span style="color:#3B82F6;">·</span> Changes here are isolated and won't affect production until you promote.
+      <button class="btn btn-ghost" style="margin-left:auto;font-size:12px;height:28px;flex-shrink:0;" onclick="exitStageMode()">← Exit Stage Mode</button>
+      <button class="btn btn-ghost" style="font-size:12px;height:28px;flex-shrink:0;border-color:#3B82F6;color:#1E40AF;" onclick="showDiffR()">Review &amp; Promote →</button>
+      <button onclick="dismissStageBanner()" style="background:none;border:none;color:#1E40AF;font-size:16px;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0;" title="Dismiss">✕</button>
     `;
   });
 }
@@ -311,47 +339,32 @@ const CART_LABELS = {
   c12: { icon: 'rem', text: 'REMOVED: JS Injection Legacy Config',                    cat: 'Bot Protection Policies' },
 };
 
-function updateCart() {
-  const cartItems = document.getElementById('cart-items');
-  const cartCount = document.getElementById('cart-count');
-  const promoteCount = document.getElementById('promote-count');
-  if (!cartItems) return;
+let diffMode = 'promote'; // 'promote' | 'revert'
 
-  const checked = Object.keys(CART_LABELS).filter(id => {
-    const el = document.getElementById(id);
-    return el && el.checked;
-  });
-
-  if (cartCount) cartCount.textContent = checked.length;
-  if (promoteCount) promoteCount.textContent = checked.length;
-
-  if (checked.length === 0) {
-    cartItems.innerHTML = '<div class="diff-cart-empty">No changes selected.<br>Check items in the diff to include them.</div>';
-    return;
-  }
-
-  cartItems.innerHTML = checked.map(id => {
-    const { icon, text, cat } = CART_LABELS[id];
-    return `<div class="diff-cart-item">
-      <span class="ci-icon ${icon}">${icon === 'add' ? '＋' : icon === 'rem' ? '－' : '~'}</span>
-      <div>
-        <div class="ci-text">${text}</div>
-        <div class="ci-cat">${cat}</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-/* ─── DIFF SCREEN ──────────────────────────────── */
-function showDiff() {
-  document.querySelectorAll('.top-nav .nav-dropdown').forEach(m => m.style.display = 'none');
-  showScreen('s07');
-  updateCart();
-}
 function showDiffR() {
   document.querySelectorAll('.top-nav .nav-dropdown').forEach(m => m.style.display = 'none');
+  diffMode = 'promote';
   showScreen('s07rb');
   rbUpdateCart();
+  const btn = document.getElementById('rb-action-btn');
+  if (btn) {
+    btn.textContent = 'Promote to Production →';
+    btn.onclick = showPromoteConfirm;
+  }
+}
+
+function showRevertFlow() {
+  document.querySelectorAll('.top-nav .nav-dropdown').forEach(m => m.style.display = 'none');
+  diffMode = 'revert';
+  // uncheck all change-row checkboxes in s07rb
+  document.querySelectorAll('#s07rb .r-diff-row input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+  showScreen('s07rb');
+  rbUpdateCart();
+  const btn = document.getElementById('rb-action-btn');
+  if (btn) {
+    btn.textContent = 'Revert →';
+    btn.onclick = showRevertConfirm;
+  }
 }
 function exitStageMode() {
   document.querySelectorAll('.top-nav .nav-dropdown').forEach(m => m.style.display = 'none');
@@ -360,6 +373,100 @@ function exitStageMode() {
 function saveDraft() {
   document.querySelectorAll('.top-nav .nav-dropdown').forEach(m => m.style.display = 'none');
   // visual-only: nothing persists in the prototype
+}
+
+/* ─── A4: CREATE STAGE VERSION ─────────────────── */
+let stageEntryScreen = 's05_1_1'; // which screen to return to after creating
+
+function showCreateVersionPopup(screen) {
+  if (screen) stageEntryScreen = screen;
+  const el = document.getElementById('create-version-modal');
+  if (el) el.style.display = 'flex';
+}
+function hideCreateVersionPopup() {
+  const el = document.getElementById('create-version-modal');
+  if (el) el.style.display = 'none';
+}
+function confirmCreateVersion() {
+  const nameEl = document.getElementById('cv-name');
+  const noteEl = document.getElementById('cv-note');
+  const versionName = nameEl ? nameEl.value.trim() || 'V11_14-04-26' : 'V11_14-04-26';
+  const versionNote = noteEl ? noteEl.value.trim() : '';
+
+  hideCreateVersionPopup();
+
+  // Add a new In Stage row to the Version History table
+  const tbody = document.querySelector('#s08 .table-container table tbody');
+  if (tbody && !document.getElementById('v11-row')) {
+    const newRow = document.createElement('tr');
+    newRow.id = 'v11-row';
+    newRow.style.background = '#F2F6FB';
+    newRow.innerHTML = `
+      <td><span class="td-real" style="font-weight:600;">V11</span></td>
+      <td><span class="td-real">${versionName}</span></td>
+      <td><span class="td-real" title="auth.acme-corp.com">1 website</span></td>
+      <td><span class="td-real">–</span></td>
+      <td><span class="td-real" style="color:#606A73;font-style:italic;">Staged – not promoted</span></td>
+      <td><span class="version-tag staged">In Stage</span></td>
+      <td><span class="td-real" style="color:#606A73;">${versionNote || '–'}</span></td>
+      <td>
+        <div class="vh-row-actions" id="v11-actions">
+          <button class="btn btn-ghost-sm" onclick="toggleRowMenu(this)">⋯</button>
+          <div class="nav-dropdown row-menu" style="display:none;right:0;left:auto;top:36px;">
+            <div class="dd-item" onclick="showDiffR()">Review &amp; Promote</div>
+            <div class="dd-item">View Details</div>
+            <div class="dd-item">Duplicate</div>
+          </div>
+        </div>
+      </td>
+    `;
+    tbody.insertBefore(newRow, tbody.firstChild);
+  }
+
+  showScreen(stageEntryScreen);
+}
+
+/* ─── A5: VERSION HISTORY FILTER ────────────────── */
+function toggleFilterPanel() {
+  const panel = document.getElementById('vh-filter-panel');
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.vh-filter-wrap')) {
+    const panel = document.getElementById('vh-filter-panel');
+    if (panel) panel.style.display = 'none';
+  }
+});
+
+function applyVHFilter() {
+  const siteChecks = document.querySelectorAll('#vh-filter-panel .vh-site-cb');
+  const fromVal = document.getElementById('vh-date-from') ? document.getElementById('vh-date-from').value : '';
+  const toVal   = document.getElementById('vh-date-to')   ? document.getElementById('vh-date-to').value   : '';
+  const activeSites = Array.from(siteChecks).filter(cb => cb.checked).map(cb => cb.value);
+  const fromDate = fromVal ? new Date(fromVal) : null;
+  const toDate   = toVal   ? new Date(toVal)   : null;
+
+  document.querySelectorAll('#s08 .table-container table tbody tr').forEach(row => {
+    const siteCell = row.querySelector('[data-sites]');
+    const dateCell = row.querySelector('[data-promote-date]');
+    let show = true;
+
+    if (activeSites.length > 0 && siteCell) {
+      const rowSites = siteCell.dataset.sites.split(',');
+      show = show && activeSites.some(s => rowSites.includes(s));
+    }
+    if ((fromDate || toDate) && dateCell) {
+      const rawDate = dateCell.dataset.promoteDate;
+      if (rawDate) {
+        const d = new Date(rawDate);
+        if (fromDate && d < fromDate) show = false;
+        if (toDate   && d > toDate)   show = false;
+      }
+    }
+    row.style.display = show ? '' : 'none';
+  });
 }
 
 /* ─── PROMOTE CONFIRMATION ──────────────────────── */
@@ -390,116 +497,48 @@ function confirmPromote() {
   if (statusCell)  statusCell.innerHTML  = '<span class="version-tag prod">Production</span>';
   if (byCell)      byCell.innerHTML      = '<span class="td-real">j.smith@acme.com</span>';
   if (dateCell)    dateCell.innerHTML    = `<span class="td-real">${dateStr}</span>`;
-  if (actionsCell) actionsCell.innerHTML = `
-    <div style="position:relative;" class="row-action-wrap">
-      <button class="btn btn-ghost-sm" onclick="toggleRowMenu(this)">⋯</button>
-      <div class="nav-dropdown row-menu" style="display:none;right:0;left:auto;top:36px;">
-        <div class="dd-item">View Details</div>
-        <div class="dd-item">Duplicate</div>
-        <div class="dd-item">Compare to previous</div>
-        <div class="dd-item" onclick="showRollbackConfirm()">Rollback to this version</div>
-      </div>
-    </div>`;
+  if (actionsCell) actionsCell.innerHTML = '';
   if (v10Row) v10Row.style.background = '';
 
   showScreen('s08');
 }
 
-/* ─── CHECKBOX HIERARCHY ────────────────────────── */
-// Section-level master checkbox — selects/deselects all without collapsing
-function sectionCbClick(sectionId, masterCb) {
-  const sec = document.getElementById(sectionId);
-  if (!sec) return;
-  const allCbs = sec.querySelectorAll('.diff-section-body input[type=checkbox]');
-  allCbs.forEach(cb => { cb.checked = masterCb.checked; cb.indeterminate = false; });
-  updateCart();
-}
-
-// Subsection-level checkbox — selects/deselects all row checkboxes in this subsection
-function subsectionCbClick(subsecId, masterCb) {
-  const subsec = document.getElementById(subsecId);
-  if (!subsec) return;
-  masterCb.indeterminate = false;
-  const rowCbs = subsec.querySelectorAll('.diff-row-check input[type=checkbox]');
-  rowCbs.forEach(cb => { cb.checked = masterCb.checked; });
-  updateCart();
-  syncSectionCb(subsec);
-}
-
-// Individual row checkbox change — updates parent subsection and section state
-function rowCbChange(rowCb) {
-  updateCart();
-  const subsec = rowCb.closest('.diff-subsection');
-  if (!subsec) return;
-  const masterCb = subsec.querySelector('.diff-subsection-header input[type=checkbox]');
-  const rowCbs   = Array.from(subsec.querySelectorAll('.diff-row-check input[type=checkbox]'));
-  if (masterCb && rowCbs.length) {
-    const n = rowCbs.filter(cb => cb.checked).length;
-    masterCb.indeterminate = n > 0 && n < rowCbs.length;
-    masterCb.checked       = n === rowCbs.length;
-  }
-  syncSectionCb(subsec);
-}
-
-// Delete a diff row and update cart
-function deleteRow(btn) {
-  const row = btn.closest('.diff-row');
-  if (row) {
-    row.remove();
-    updateCart();
-  }
-}
-
-// Propagate subsection state up to the section master checkbox
-function syncSectionCb(subsec) {
-  const sec = subsec.closest('.diff-section');
-  if (!sec) return;
-  const secCb  = sec.querySelector('.diff-section-header > input[type=checkbox]');
-  const rowCbs = Array.from(sec.querySelectorAll('.diff-row-check input[type=checkbox]'));
-  if (secCb && rowCbs.length) {
-    const n = rowCbs.filter(cb => cb.checked).length;
-    secCb.indeterminate = n > 0 && n < rowCbs.length;
-    secCb.checked       = n === rowCbs.length;
-  }
-}
-
-/* ─── ROLLBACK CONFIRM ───────────────────────────── */
-function showRollbackConfirm() {
-  const overlay = document.getElementById('rollback-overlay');
+/* ─── REVERT CONFIRM ───────────────────────────── */
+function showRevertConfirm() {
+  const overlay = document.getElementById('revert-overlay');
   if (overlay) overlay.style.display = 'flex';
 }
-function hideRollbackConfirm() {
-  const overlay = document.getElementById('rollback-overlay');
+function hideRevertConfirm() {
+  const overlay = document.getElementById('revert-overlay');
   if (overlay) overlay.style.display = 'none';
 }
-function confirmRollback() {
-  hideRollbackConfirm();
+function confirmRevert() {
+  hideRevertConfirm();
 
-  // Create a new V11 rollback version row and insert it at the top of the table
+  // Create a new V11 revert version row and insert it at the top of the table
   const tbody = document.querySelector('#s08 .table-container table tbody');
   if (!tbody) return;
 
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit', year:'numeric' })
-    + ' ' + now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
-
   const newRow = document.createElement('tr');
-  newRow.style.background = '#FEF3C7';
+  newRow.style.background = '#F2F6FB';
   newRow.innerHTML = `
     <td><span class="td-real" style="font-weight:600;">V11</span></td>
-    <td><span class="td-real">V11_14-04-26 (Rollback from V9)</span></td>
+    <td><span class="td-real">V11 (Revert from V9)</span></td>
+    <td><span class="td-real" style="cursor:default;">8 websites</span></td>
     <td><span class="td-real">8 changes</span></td>
-    <td><span class="td-real">j.smith@acme.com</span></td>
-    <td><span class="td-real">${dateStr}</span></td>
+    <td><span class="td-real" style="color:#606A73;">Revert from V9</span></td>
+    <td><span class="td-real">–</span></td>
+    <td><span class="td-real" style="color:#606A73;font-style:italic;">Staged – not promoted</span></td>
     <td><span class="version-tag staged">In Stage</span></td>
     <td>
       <div class="vh-row-actions">
-        <button class="btn btn-primary" style="font-size:12px;height:30px;padding:0 12px;" onclick="showDiffR()">Promote →</button>
-        <button class="btn btn-ghost-sm" onclick="toggleRowMenu(this)">⋯</button>
-        <div class="nav-dropdown row-menu" style="display:none;right:0;left:auto;top:36px;">
-          <div class="dd-item" onclick="showDiffR()">Review &amp; Promote</div>
-          <div class="dd-item">View Details</div>
-          <div class="dd-item">Duplicate</div>
+        <div style="position:relative;" class="row-action-wrap">
+          <button class="btn btn-ghost-sm" onclick="toggleRowMenu(this)">⋯</button>
+          <div class="nav-dropdown row-menu" style="display:none;right:0;left:auto;top:36px;">
+            <div class="dd-item">View Details</div>
+            <div class="dd-item">Duplicate</div>
+            <div class="dd-item">Compare to Production</div>
+          </div>
         </div>
       </div>
     </td>
@@ -509,196 +548,18 @@ function confirmRollback() {
   showScreen('s08');
 }
 
-/* ════════════════════════════════════════════════
-   REDESIGNED DIFF (s07r) — all functions prefixed r
-════════════════════════════════════════════════ */
-
-// Grouped cart data matching the left-panel hierarchy
-const R_CART_GROUPS = [
-  {
-    group: 'Website Level Changes',
-    subs: [
-      { sub: 'Security Rules',        ids: ['r-c1','r-c2','r-c3','r-c4'] },
-      { sub: 'Cache Settings',        ids: ['r-c5','r-c6'] },
-      { sub: 'shop.acme-corp.com',    ids: ['r-c7','r-c8'] },
-    ]
-  },
-  {
-    group: 'Account Level Changes',
-    subs: [
-      { sub: 'WAF Policies',          ids: ['r-c9','r-c10'] },
-      { sub: 'Bot Protection Policies', ids: ['r-c11','r-c12'] },
-    ]
-  }
-];
-
-const R_CART_LABELS = {
-  'r-c1':  { icon: 'mod', text: 'SQL Injection Block – severity + confidence raised' },
-  'r-c2':  { icon: 'mod', text: 'XSS Detection – exception path v1 → v2' },
-  'r-c3':  { icon: 'add', text: 'NEW: Geo-Block rule (KP, IR, RU)' },
-  'r-c4':  { icon: 'del', text: 'REMOVED: Legacy IP Whitelist v1 (WAF-034)' },
-  'r-c5':  { icon: 'mod', text: 'Cache TTL /api/v2/* – 300s → 60s' },
-  'r-c6':  { icon: 'add', text: 'NEW: Cache rule for /static/** (86400s)' },
-  'r-c7':  { icon: 'mod', text: 'Rate Limiting Checkout – 100 → 50 req/min' },
-  'r-c8':  { icon: 'add', text: 'NEW: Cart Abuse Detection (BOT-011)' },
-  'r-c9':  { icon: 'mod', text: 'Global WAF Policy – Detection → Prevention' },
-  'r-c10': { icon: 'add', text: 'NEW: OWASP Top 10 2025 Ruleset (52 rules)' },
-  'r-c11': { icon: 'mod', text: 'Bot Detection API – threshold 85→72, Block→Challenge' },
-  'r-c12': { icon: 'del', text: 'REMOVED: JS Injection Legacy Config' },
-};
-
-/* ─── Cart + header badge update ── */
-function rUpdateCart() {
-  const cartItems = document.getElementById('r-cart-items');
-  const cartCount = document.getElementById('r-cart-count');
-
-  let total = 0, addN = 0, modN = 0, delN = 0;
-  Object.keys(R_CART_LABELS).forEach(id => {
-    const el = document.getElementById(id);
-    if (el && el.checked) {
-      total++;
-      const ic = R_CART_LABELS[id].icon;
-      if (ic === 'add') addN++;
-      else if (ic === 'mod') modN++;
-      else delN++;
-    }
-  });
-
-  if (cartCount) cartCount.textContent = total;
-  const pc = document.getElementById('promote-count');
-  if (pc) pc.textContent = total;
-  const sc = document.getElementById('r-strip-count');
-  if (sc) sc.textContent = total;
-
-  // Update header badges
-  const ca = document.getElementById('r-count-add');
-  const cm = document.getElementById('r-count-mod');
-  const cd = document.getElementById('r-count-del');
-  if (ca) ca.textContent = addN;
-  if (cm) cm.textContent = modN;
-  if (cd) cd.textContent = delN;
-
-  if (!cartItems) return;
-
-  if (total === 0) {
-    cartItems.innerHTML = '<div class="r-cart-empty">No changes selected.<br>Check items on the left to include them.</div>';
-    return;
-  }
-
-  let html = '';
-  R_CART_GROUPS.forEach(({ group, subs }) => {
-    let groupHtml = '';
-    subs.forEach(({ sub, ids }) => {
-      let subHtml = '';
-      ids.forEach(id => {
-        const el = document.getElementById(id);
-        if (el && el.checked) {
-          const { icon, text } = R_CART_LABELS[id];
-          subHtml += `<div class="r-cart-item">
-            <span class="r-ci-badge ${icon}">${icon.toUpperCase()}</span>
-            <span class="r-ci-text">${text}</span>
-          </div>`;
-        }
-      });
-      if (subHtml) {
-        groupHtml += `<div class="r-cart-subgroup-label">${sub}</div>${subHtml}`;
-      }
-    });
-    if (groupHtml) {
-      html += `<div class="r-cart-group">
-        <div class="r-cart-group-label">${group}</div>
-        ${groupHtml}
-      </div>`;
-    }
-  });
-
-  cartItems.innerHTML = html;
-}
-
-/* ─── Checkbox hierarchy ── */
-function rSectionCbClick(masterCb) {
-  const section = masterCb.closest('.r-section');
-  if (!section) return;
-  section.querySelectorAll(
-    '.r-diff-row-check input[type=checkbox], .r-subsection-header input[type=checkbox]'
-  ).forEach(cb => { cb.checked = masterCb.checked; cb.indeterminate = false; });
-  rUpdateCart();
-}
-
-function rSubsectionCbClick(masterCb) {
-  const subsec = masterCb.closest('.r-subsection');
-  if (!subsec) return;
-  masterCb.indeterminate = false;
-  subsec.querySelectorAll('.r-diff-row-check input[type=checkbox]')
-        .forEach(cb => { cb.checked = masterCb.checked; });
-  rUpdateCart();
-  rSyncSectionCb(subsec);
-}
-
-function rRowCbChange(rowCb) {
-  rUpdateCart();
-  const subsec = rowCb.closest('.r-subsection');
-  if (!subsec) return;
-  const masterCb = subsec.querySelector('.r-subsection-header input[type=checkbox]');
-  const rowCbs   = Array.from(subsec.querySelectorAll('.r-diff-row-check input[type=checkbox]'));
-  if (masterCb && rowCbs.length) {
-    const n = rowCbs.filter(cb => cb.checked).length;
-    masterCb.indeterminate = n > 0 && n < rowCbs.length;
-    masterCb.checked       = n === rowCbs.length;
-  }
-  rSyncSectionCb(subsec);
-}
-
-function rSyncSectionCb(subsec) {
-  const section = subsec.closest('.r-section');
-  if (!section) return;
-  const secCb  = section.querySelector('.r-section-header input[type=checkbox]');
-  const rowCbs = Array.from(section.querySelectorAll('.r-diff-row-check input[type=checkbox]'));
-  if (secCb && rowCbs.length) {
-    const n = rowCbs.filter(cb => cb.checked).length;
-    secCb.indeterminate = n > 0 && n < rowCbs.length;
-    secCb.checked       = n === rowCbs.length;
-  }
-}
-
-function rDeleteRow(btn) {
-  const row = btn.closest('.r-diff-row');
-  if (row) { row.remove(); rUpdateCart(); }
-}
-
-/* ─── Filter + search ── */
-let rActiveFilter = 'all';
-let rSearchTerm   = '';
-
-function rFilterChange(type, btn) {
-  rActiveFilter = type;
-  document.querySelectorAll('#s07r .r-chip').forEach(c => c.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  rApplyFilter();
-}
-
-function rSearchChange(val) {
-  rSearchTerm = val.toLowerCase().trim();
-  rApplyFilter();
-}
-
-function rApplyFilter() {
-  document.querySelectorAll('#s07r .r-diff-row').forEach(row => {
-    const typeMatch   = rActiveFilter === 'all' || row.dataset.type === rActiveFilter;
-    const haystack    = (row.dataset.search || '') + ' ' +
-                        (row.querySelector('.r-row-title')?.textContent || '').toLowerCase();
-    const searchMatch = !rSearchTerm || haystack.includes(rSearchTerm);
-    row.classList.toggle('r-hidden', !(typeMatch && searchMatch));
-  });
-}
-
 /* ─── Three-dot meta popover ── */
 function rToggleMeta(popoverId, btn) {
   const popover = document.getElementById(popoverId);
   if (!popover) return;
   const isOpen = popover.classList.contains('open');
   document.querySelectorAll('.r-meta-popover.open').forEach(p => p.classList.remove('open'));
-  if (!isOpen) popover.classList.add('open');
+  if (!isOpen) {
+    const rect = btn.getBoundingClientRect();
+    popover.style.top = (rect.bottom + 4) + 'px';
+    popover.style.right = (window.innerWidth - rect.right) + 'px';
+    popover.classList.add('open');
+  }
 }
 
 document.addEventListener('click', e => {
@@ -717,6 +578,63 @@ function rToggleSubsection(headerEl) {
   if (subsec) subsec.classList.toggle('r-collapsed');
 }
 
+/* ─── EMERGENCY REVERT ───────────────────────────── */
+function showEmergencyRevertConfirm() {
+  const modal = document.getElementById('emergency-revert-modal');
+  if (modal) modal.style.display = 'flex';
+}
+function hideEmergencyRevertConfirm() {
+  const modal = document.getElementById('emergency-revert-modal');
+  if (modal) modal.style.display = 'none';
+}
+function confirmEmergencyRevert() {
+  hideEmergencyRevertConfirm();
+
+  const tbody = document.querySelector('#s08 .table-container table tbody');
+  if (!tbody) return;
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit', year:'numeric' })
+    + ' ' + now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+
+  // Insert emergency revert row at top of table as new Production version
+  const newRow = document.createElement('tr');
+  newRow.id = 'er-row';
+  newRow.innerHTML = `
+    <td><span class="td-real" style="font-weight:600;">V12</span></td>
+    <td><span class="td-real">Emergency revert from V9</span></td>
+    <td><span class="td-real" data-sites="api.acme-corp.com,shop.acme-corp.com,auth.acme-corp.com" title="api.acme-corp.com&#10;shop.acme-corp.com&#10;auth.acme-corp.com" style="cursor:default;">3 websites</span></td>
+    <td><span class="td-real">8 changes</span></td>
+    <td><span class="td-real" style="color:#606A73;">Emergency revert</span></td>
+    <td><span class="td-real">You</span></td>
+    <td data-promote-date="${now.toISOString().slice(0,10)}"><span class="td-real">${dateStr}</span></td>
+    <td><span class="version-tag prod">Production</span></td>
+    <td></td>`;
+  tbody.insertBefore(newRow, tbody.firstChild);
+
+  // Demote any current Production rows to Previous
+  document.querySelectorAll('#s08 .version-tag.prod').forEach(badge => {
+    if (badge.closest('#er-row')) return; // skip the row we just inserted
+    badge.outerHTML = '<span class="version-tag" style="background:#F3F4F6;color:#6B7280;">Previous</span>';
+  });
+
+  // Warn any staged rows that prod has changed
+  document.querySelectorAll('#s08 .table-container table tbody tr').forEach(row => {
+    const statusCell = row.querySelector('.version-tag.staged');
+    if (statusCell && !row.id.startsWith('er-')) {
+      const existing = row.querySelector('.er-warning');
+      if (!existing) {
+        const warn = document.createElement('span');
+        warn.className = 'er-warning';
+        warn.title = 'Production changed since this version was staged. Review before promoting.';
+        warn.textContent = ' ⚠';
+        warn.style.cssText = 'color:#F59E0B;cursor:default;font-size:14px;';
+        statusCell.parentNode.appendChild(warn);
+      }
+    }
+  });
+}
+
 /* ─── INIT ───────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   // Navbars
@@ -730,6 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderNav('nav-s05_2', 'blue', 'V10_11-03-26');
   renderNav('nav-s05_3', 'blue', 'V10_11-03-26');
   renderNav('nav-s08', 'black');
+  renderNav('nav-s09', 'blue');
 
   // Sidebars — (id, variant, activeItem, stageMode)
   renderSidebar('sidebar-s01',     'application',  null,             false);
@@ -742,19 +661,15 @@ document.addEventListener('DOMContentLoaded', () => {
   renderSidebar('sidebar-s05_2',   'application',  'waf-policies',   true);
   renderSidebar('sidebar-s05_3',   'application',  'security-events',true);
   renderSidebar('sidebar-s08',     'application',  null,             false);
+  renderSidebar('sidebar-s09',     'website-mgmt', 'security-rules', true);
 
   // Stage banners  -  same content across all staging screens
   renderStageBanners();
 
   // Websites table  -  same data stamped into all three screens
   renderWebsitesTable('websites-table-s02');
-  renderWebsitesTable('websites-table-s04');
-
-  // Init cart (original s07)
-  updateCart();
-
-  // Init redesigned cart (s07r)
-  rUpdateCart();
+  // In stage mode: auth.acme-corp.com (index 2) is locked in V11 — clicking it shows the blocking dialog
+  renderWebsitesTable('websites-table-s04', {2: 'showSiteLockedDialog()'});
 
   // Init API-abuse task scenario cart (s07rb)
   rbUpdateCart();
@@ -767,8 +682,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Each subsection checkbox id → the changes it controls
 const RB_SUBSECTION_CHANGES = {
-  'rb-sub-cb-security-rules': { add: 1, mod: 1, del: 0 }, // rb-c1 (ADD), rb-c3 (MOD)
-  'rb-sub-cb-waf-policies':   { add: 1, mod: 0, del: 1 }, // rb-c2 (ADD), rb-c4 (DEL)
+  'rb-sub-cb-api':          { add: 1, mod: 0, del: 0 }, // rb-c1 ADD
+  'rb-sub-cb-shop':         { add: 0, mod: 1, del: 0 }, // rb-c3 MOD
+  'rb-sub-cb-waf-policies': { add: 1, mod: 0, del: 0 }, // rb-c2 ADD
 };
 
 function rbUpdateCart() {
@@ -839,4 +755,34 @@ function rbApplyFilter() {
     const searchMatch = !rbSearchTerm || haystack.includes(rbSearchTerm);
     row.classList.toggle('r-hidden', !(typeMatch && searchMatch));
   });
+}
+
+/* ─── PER-ROW DELETE (C3) ───────────────────────── */
+function rbShowDeleteConfirm(btn) {
+  const row = btn.closest('.r-diff-row');
+  if (!row) return;
+  const titleBar = row.querySelector('.r-row-title-bar');
+  if (!titleBar) return;
+  const title = row.querySelector('.r-row-title')?.textContent || 'this change';
+  titleBar.dataset.savedHtml = titleBar.innerHTML;
+  titleBar.innerHTML = `
+    <span style="font-size:13px;color:#374151;">Remove <strong>${title}</strong> from this version?</span>
+    <div style="display:flex;gap:8px;margin-left:auto;">
+      <button class="btn btn-secondary" style="font-size:12px;height:28px;padding:0 10px;" onclick="rbCancelDelete(this)">Cancel</button>
+      <button class="btn btn-danger" style="font-size:12px;height:28px;padding:0 10px;" onclick="rbConfirmDelete(this)">Remove</button>
+    </div>`;
+}
+
+function rbCancelDelete(btn) {
+  const row = btn.closest('.r-diff-row');
+  const titleBar = row?.querySelector('.r-row-title-bar');
+  if (titleBar && titleBar.dataset.savedHtml) {
+    titleBar.innerHTML = titleBar.dataset.savedHtml;
+    delete titleBar.dataset.savedHtml;
+  }
+}
+
+function rbConfirmDelete(btn) {
+  const row = btn.closest('.r-diff-row');
+  if (row) { row.remove(); rbUpdateCart(); }
 }
