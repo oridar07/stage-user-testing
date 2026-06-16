@@ -18,13 +18,11 @@ function renderNav(id, _variant = 'black', versionLabel = null, accountDropdownO
   const el = document.getElementById(id);
   if (!el) return;
 
-  // Version badge + kebob shown only in stage mode
+  // Persistent env pill — always shown; stage mode also shows kebob
+  const envPill = `<button class="nav-env-pill ${versionLabel ? 'nav-env-stage' : 'nav-env-prod'}" onclick="showScreen('s08')">${versionLabel ? `Stage: ${versionLabel}` : 'Production'}</button>`;
   const stageBadge = versionLabel
     ? `<div class="nav-divider-light"></div>
-       <div class="nav-version-badge">
-         <span class="version-id">${versionLabel}</span>
-         <span class="version-stage">Staging</span>
-       </div>
+       ${envPill}
        <div style="position:relative;">
          <button class="nav-kebob" onclick="toggleNavDropdown(this)">
            <span></span><span></span><span></span>
@@ -36,7 +34,7 @@ function renderNav(id, _variant = 'black', versionLabel = null, accountDropdownO
            <div class="dd-item" onclick="showScreen('s08')">View Version History</div>
          </div>
        </div>`
-    : '';
+    : `<div class="nav-divider-light"></div>${envPill}`;
 
   // Account dropdown items differ by mode
   const accountItems = versionLabel
@@ -124,6 +122,11 @@ function hideSiteLockedDialog() {
 function renderWebsitesTable(tableId, clickOverrides = {}) {
   const table = document.getElementById(tableId);
   if (!table) return;
+
+  // Build site → version name map for inline stage badges
+  const siteStageMap = {};
+  STAGE_VERSIONS.forEach(v => { v.sites.forEach(site => { siteStageMap[site] = v.name; }); });
+
   table.innerHTML = `
     <thead>
       <tr>
@@ -148,10 +151,13 @@ function renderWebsitesTable(tableId, clickOverrides = {}) {
               ? `onclick="${cs}" class="row-clickable"`
               : `onclick="showScreen('${cs}')" class="row-clickable"`)
           : '';
+        const stageBadge = siteStageMap[w.name]
+          ? ` <span class="version-tag staged" style="font-size:10px;padding:1px 6px;margin-left:4px;vertical-align:middle;">In Stage · ${siteStageMap[w.name]}</span>`
+          : '';
         return `
         <tr ${rowAttrs}>
           <td><input type="checkbox" onclick="event.stopPropagation()"/></td>
-          <td><span class="td-real">${w.name}</span><br><span class="td-sub">${w.id}</span></td>
+          <td><span class="td-real">${w.name}</span>${stageBadge}<br><span class="td-sub">${w.id}</span></td>
           <td><span class="td-real">${w.bw}</span></td>
           <td><span class="td-real">${w.humans}</span></td>
           <td><span class="td-real">${w.bots}</span></td>
@@ -317,6 +323,30 @@ document.addEventListener('click', e => {
   }
 });
 
+/* ─── S08 TABS ─────────────────────────────────── */
+function switchS08Tab(tab) {
+  const s08 = document.getElementById('s08');
+  document.getElementById('s08-stage-body').style.display   = tab === 'stage'   ? '' : 'none';
+  document.getElementById('s08-history-body').style.display = tab === 'history' ? '' : 'none';
+  document.getElementById('s08-add-btn').style.display      = tab === 'stage'   ? '' : 'none';
+  s08.classList.toggle('s08-stage-active', tab === 'stage');
+  document.querySelectorAll('.s08-tab-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === tab));
+}
+
+/* ─── SITE LIST DROPDOWN ───────────────────────── */
+function toggleSiteList(btn) {
+  const wrap = btn.closest('.site-list-wrap');
+  const isOpen = wrap.classList.contains('open');
+  document.querySelectorAll('.site-list-wrap.open').forEach(w => w.classList.remove('open'));
+  if (!isOpen) wrap.classList.add('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.site-list-wrap')) {
+    document.querySelectorAll('.site-list-wrap.open').forEach(w => w.classList.remove('open'));
+  }
+});
+
 /* ─── DIFF: TOGGLE SECTIONS ─────────────────────── */
 function toggleSection(id) {
   const sec = document.getElementById(id);
@@ -395,8 +425,8 @@ function confirmCreateVersion() {
 
   hideCreateVersionPopup();
 
-  // Add a new In Stage row to the Version History table
-  const tbody = document.querySelector('#s08 .table-container table tbody');
+  // Add a new In Stage row to the Version History Stage tab
+  const tbody = document.getElementById('s08-stage-body');
   if (tbody && !document.getElementById('v11-row')) {
     const newRow = document.createElement('tr');
     newRow.id = 'v11-row';
@@ -404,21 +434,13 @@ function confirmCreateVersion() {
     newRow.innerHTML = `
       <td><span class="td-real" style="font-weight:600;">V11</span></td>
       <td><span class="td-real">${versionName}</span></td>
-      <td><span class="td-real" title="auth.acme-corp.com">1 website</span></td>
-      <td><span class="td-real">–</span></td>
-      <td><span class="td-real" style="color:#606A73;font-style:italic;">Staged – not promoted</span></td>
-      <td><span class="version-tag staged">In Stage</span></td>
+      <td><span class="td-real" data-sites="auth.acme-corp.com">auth.acme-corp.com</span></td>
       <td><span class="td-real" style="color:#606A73;">${versionNote || '–'}</span></td>
-      <td>
-        <div class="vh-row-actions" id="v11-actions">
-          <button class="btn btn-ghost-sm" onclick="toggleRowMenu(this)">⋯</button>
-          <div class="nav-dropdown row-menu" style="display:none;right:0;left:auto;top:36px;">
-            <div class="dd-item" onclick="showDiffR()">Review &amp; Promote</div>
-            <div class="dd-item">View Details</div>
-            <div class="dd-item">Duplicate</div>
-          </div>
-        </div>
-      </td>
+      <td><span class="td-real">j.smith@acme.com</span></td>
+      <td><span class="td-real">–</span></td>
+      <td class="promote-date-col"><span class="td-real" style="color:#606A73;font-style:italic;">Staged – not promoted</span></td>
+      <td><span class="version-tag staged">In Stage</span></td>
+      <td></td>
     `;
     tbody.insertBefore(newRow, tbody.firstChild);
   }
@@ -448,7 +470,7 @@ function applyVHFilter() {
   const fromDate = fromVal ? new Date(fromVal) : null;
   const toDate   = toVal   ? new Date(toVal)   : null;
 
-  document.querySelectorAll('#s08 .table-container table tbody tr').forEach(row => {
+  document.querySelectorAll('#s08-stage-body tr, #s08-history-body tr').forEach(row => {
     const siteCell = row.querySelector('[data-sites]');
     const dateCell = row.querySelector('[data-promote-date]');
     let show = true;
@@ -515,8 +537,8 @@ function hideRevertConfirm() {
 function confirmRevert() {
   hideRevertConfirm();
 
-  // Create a new V11 revert version row and insert it at the top of the table
-  const tbody = document.querySelector('#s08 .table-container table tbody');
+  // Create a new V11 revert version row and insert at top of Stage tab
+  const tbody = document.getElementById('s08-stage-body');
   if (!tbody) return;
 
   const newRow = document.createElement('tr');
@@ -524,11 +546,21 @@ function confirmRevert() {
   newRow.innerHTML = `
     <td><span class="td-real" style="font-weight:600;">V11</span></td>
     <td><span class="td-real">V11 (Revert from V9)</span></td>
-    <td><span class="td-real" style="cursor:default;">8 websites</span></td>
-    <td><span class="td-real">8 changes</span></td>
+    <td>
+      <div class="site-list-wrap">
+        <button class="site-list-btn" onclick="toggleSiteList(this)">8 websites ▾</button>
+        <div class="site-list-dropdown">
+          <div class="site-list-item">api.acme-corp.com</div>
+          <div class="site-list-item">shop.acme-corp.com</div>
+          <div class="site-list-item">auth.acme-corp.com</div>
+          <div class="site-list-item" style="color:#606A73;">+5 more</div>
+        </div>
+      </div>
+    </td>
     <td><span class="td-real" style="color:#606A73;">Revert from V9</span></td>
+    <td><span class="td-real">j.smith@acme.com</span></td>
     <td><span class="td-real">–</span></td>
-    <td><span class="td-real" style="color:#606A73;font-style:italic;">Staged – not promoted</span></td>
+    <td class="promote-date-col"><span class="td-real" style="color:#606A73;font-style:italic;">Staged – not promoted</span></td>
     <td><span class="version-tag staged">In Stage</span></td>
     <td>
       <div class="vh-row-actions">
@@ -590,24 +622,33 @@ function hideEmergencyRevertConfirm() {
 function confirmEmergencyRevert() {
   hideEmergencyRevertConfirm();
 
-  const tbody = document.querySelector('#s08 .table-container table tbody');
+  const tbody = document.getElementById('s08-history-body');
   if (!tbody) return;
 
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit', year:'numeric' })
     + ' ' + now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
 
-  // Insert emergency revert row at top of table as new Production version
+  // Insert emergency revert row at top of history as new Production version
   const newRow = document.createElement('tr');
   newRow.id = 'er-row';
   newRow.innerHTML = `
     <td><span class="td-real" style="font-weight:600;">V12</span></td>
     <td><span class="td-real">Emergency revert from V9</span></td>
-    <td><span class="td-real" data-sites="api.acme-corp.com,shop.acme-corp.com,auth.acme-corp.com" title="api.acme-corp.com&#10;shop.acme-corp.com&#10;auth.acme-corp.com" style="cursor:default;">3 websites</span></td>
-    <td><span class="td-real">8 changes</span></td>
+    <td>
+      <div class="site-list-wrap">
+        <button class="site-list-btn" onclick="toggleSiteList(this)">3 websites ▾</button>
+        <div class="site-list-dropdown">
+          <div class="site-list-item">api.acme-corp.com</div>
+          <div class="site-list-item">shop.acme-corp.com</div>
+          <div class="site-list-item">auth.acme-corp.com</div>
+        </div>
+      </div>
+    </td>
     <td><span class="td-real" style="color:#606A73;">Emergency revert</span></td>
     <td><span class="td-real">You</span></td>
-    <td data-promote-date="${now.toISOString().slice(0,10)}"><span class="td-real">${dateStr}</span></td>
+    <td><span class="td-real">You</span></td>
+    <td class="promote-date-col" data-promote-date="${now.toISOString().slice(0,10)}"><span class="td-real">${dateStr}</span></td>
     <td><span class="version-tag prod">Production</span></td>
     <td></td>`;
   tbody.insertBefore(newRow, tbody.firstChild);
@@ -619,7 +660,7 @@ function confirmEmergencyRevert() {
   });
 
   // Warn any staged rows that prod has changed
-  document.querySelectorAll('#s08 .table-container table tbody tr').forEach(row => {
+  document.querySelectorAll('#s08-stage-body tr, #s08-history-body tr').forEach(row => {
     const statusCell = row.querySelector('.version-tag.staged');
     if (statusCell && !row.id.startsWith('er-')) {
       const existing = row.querySelector('.er-warning');
@@ -633,6 +674,9 @@ function confirmEmergencyRevert() {
       }
     }
   });
+
+  switchS08Tab('history');
+  showScreen('s08');
 }
 
 /* ─── INIT ───────────────────────────────────────── */
@@ -648,7 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderNav('nav-s05_2', 'blue', 'V10_11-03-26');
   renderNav('nav-s05_3', 'blue', 'V10_11-03-26');
   renderNav('nav-s08', 'black');
-  renderNav('nav-s09', 'blue');
+  renderNav('nav-s09', 'blue', 'V10_11-03-26');
 
   // Sidebars — (id, variant, activeItem, stageMode)
   renderSidebar('sidebar-s01',     'application',  null,             false);
@@ -673,6 +717,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Init API-abuse task scenario cart (s07rb)
   rbUpdateCart();
+
+  // Init s08 tab state — Stage tab active by default
+  switchS08Tab('stage');
 });
 
 /* ════════════════════════════════════════════════

@@ -1296,3 +1296,71 @@ tr.row-clickable:hover { background: #F2F6FB !important; }
   font-size: 12px;
   color: #6B7280;
 }
+
+/* ── Persistent env pill ─────────────────────────── */
+.nav-env-pill {
+  border: none;
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+.nav-env-pill:hover { opacity: 0.85; }
+.nav-env-prod  { background: #D1FAE5; color: #065F46; }
+.nav-env-stage { background: #E0E7FF; color: #4338CA; }
+
+/* ── s08 tab bar ─────────────────────────────────── */
+.s08-tab-bar {
+  display: flex;
+  border-bottom: 1px solid #E5E7EB;
+  padding: 0 16px;
+  margin-bottom: 0;
+}
+.s08-tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6B7280;
+  cursor: pointer;
+  margin-bottom: -1px;
+  font-family: 'Inter', sans-serif;
+}
+.s08-tab-btn.active { color: #111827; border-bottom-color: #3B82F6; }
+.s08-tab-btn:hover:not(.active) { color: #374151; }
+
+/* ── Promote Date column (hidden on Stage tab) ───── */
+#s08.s08-stage-active .promote-date-col { display: none; }
+
+/* ── Multi-site dropdown in Assets/Websites cell ── */
+.site-list-wrap { position: relative; display: inline-block; }
+.site-list-btn {
+  background: none;
+  border: none;
+  color: #285AE6;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+}
+.site-list-btn:hover { text-decoration: underline; }
+.site-list-dropdown {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  background: #fff;
+  border: 1px solid #CBD6E0;
+  border-radius: 6px;
+  padding: 6px 0;
+  min-width: 220px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 300;
+}
+.site-list-wrap.open .site-list-dropdown { display: block; }
+.site-list-item { padding: 6px 14px; font-size: 13px; color: #212121; }

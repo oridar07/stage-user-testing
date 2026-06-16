@@ -66,10 +66,9 @@
       <!-- Read-only info banner -->
       <div style="display:flex;align-items:center;gap:12px;background:#EFF6FF;border-left:4px solid #3B82F6;border-radius:4px;padding:12px 16px;margin:16px 20px 0;font-size:13px;color:#1E40AF;">
         <span style="font-size:15px;flex-shrink:0;">🔒</span>
-        <span>Rules are read-only in production. To create or edit rules, switch to Stage Mode. Changes are saved as a version and must be promoted to take effect in production.</span>
-        <div style="display:flex;gap:8px;margin-left:auto;flex-shrink:0;">
-          <button class="btn btn-secondary" style="height:32px;font-size:12px;padding:0 14px;" onclick="showScreen('s08')">Open existing</button>
-          <button class="btn btn-primary" style="height:32px;font-size:12px;padding:0 14px;" onclick="showCreateVersionPopup('s05_1_1')">Create new stage version</button>
+        <span>A stage version is currently active (V10_11-03-26). Manage it or create a new one in Version History.</span>
+        <div style="margin-left:auto;flex-shrink:0;">
+          <button class="btn btn-primary" style="height:32px;font-size:12px;padding:0 14px;" onclick="showScreen('s08')">Go to Version History</button>
         </div>
       </div>
 
@@ -178,10 +177,9 @@
       <!-- Read-only info banner -->
       <div style="display:flex;align-items:center;gap:12px;background:#EFF6FF;border-left:4px solid #3B82F6;border-radius:4px;padding:12px 16px;margin:16px 20px 0;font-size:13px;color:#1E40AF;">
         <span style="font-size:15px;flex-shrink:0;">🔒</span>
-        <span>Policies are read-only in production. To create or edit policies, switch to Stage Mode.</span>
-        <div style="display:flex;gap:8px;margin-left:auto;flex-shrink:0;">
-          <button class="btn btn-secondary" style="height:32px;font-size:12px;padding:0 14px;" onclick="showScreen('s08')">Open existing</button>
-          <button class="btn btn-primary" style="height:32px;font-size:12px;padding:0 14px;" onclick="showCreateVersionPopup('s05_2')">Create new stage version</button>
+        <span>A stage version is currently active (V10_11-03-26). Manage it or create a new one in Version History.</span>
+        <div style="margin-left:auto;flex-shrink:0;">
+          <button class="btn btn-primary" style="height:32px;font-size:12px;padding:0 14px;" onclick="showScreen('s08')">Go to Version History</button>
         </div>
       </div>
 
@@ -997,8 +995,14 @@
                 <button class="btn btn-ghost" style="width:100%;font-size:12px;" onclick="document.querySelectorAll('.vh-site-cb').forEach(c=>c.checked=false);document.getElementById('vh-date-from').value='';document.getElementById('vh-date-to').value='';applyVHFilter();">Clear filters</button>
               </div>
             </div>
-            <button class="btn btn-primary-sm" onclick="showCreateVersionPopup()">＋ Add</button>
+            <button id="s08-add-btn" class="btn btn-primary-sm" onclick="showCreateVersionPopup()">＋ Add</button>
           </div>
+        </div>
+
+        <!-- Tab bar -->
+        <div class="s08-tab-bar">
+          <button class="s08-tab-btn active" data-tab="stage" onclick="switchS08Tab('stage')">Stage</button>
+          <button class="s08-tab-btn" data-tab="history" onclick="switchS08Tab('history')">History</button>
         </div>
 
         <table>
@@ -1007,46 +1011,44 @@
               <th>ID</th>
               <th>Name</th>
               <th>Assets / Websites</th>
-              <th>Changes <span style="color:#DF2427;">*</span></th>
               <th>Description</th>
+              <th>Created by</th>
               <th>Promoted By</th>
-              <th>Promote Date</th>
+              <th class="promote-date-col">Promote Date</th>
               <th>Status</th>
               <th></th>
             </tr>
           </thead>
-          <tbody>
-            <!-- ── In Stage ─────────────────────────────── -->
+
+          <!-- ── Stage tab body (V11, V10) ──────────────── -->
+          <tbody id="s08-stage-body">
             <tr id="v11-row">
               <td><span class="td-real" style="font-weight:600;">V11</span></td>
               <td><span class="td-real">V11_14-04-26</span></td>
-              <td><span class="td-real" data-sites="auth.acme-corp.com" title="auth.acme-corp.com" style="cursor:default;">1 website</span></td>
-              <td><span class="td-real">2 changes</span></td>
+              <td><span class="td-real" data-sites="auth.acme-corp.com">auth.acme-corp.com</span></td>
               <td><span class="td-real" style="color:#606A73;">Auth service hardening</span></td>
+              <td><span class="td-real">j.smith@acme.com</span></td>
               <td><span class="td-real">–</span></td>
-              <td><span class="td-real" style="color:#606A73;font-style:italic;">Staged – not promoted</span></td>
+              <td class="promote-date-col"><span class="td-real" style="color:#606A73;font-style:italic;">Staged – not promoted</span></td>
               <td><span class="version-tag staged">In Stage</span></td>
-              <td>
-                <div class="vh-row-actions">
-                  <div style="position:relative;" class="row-action-wrap">
-                    <button class="btn btn-ghost-sm" onclick="toggleRowMenu(this)">⋯</button>
-                    <div class="nav-dropdown row-menu" style="display:none;right:0;left:auto;top:36px;">
-                      <div class="dd-item">View Details</div>
-                      <div class="dd-item">Duplicate</div>
-                      <div class="dd-item">Compare to Production</div>
-                    </div>
-                  </div>
-                </div>
-              </td>
+              <td></td>
             </tr>
             <tr id="v10-row" style="background:#F2F6FB;">
               <td><span class="td-real" style="font-weight:600;">V10</span></td>
               <td><span class="td-real">V10_11-03-26</span></td>
-              <td><span class="td-real" data-sites="api.acme-corp.com,shop.acme-corp.com" title="api.acme-corp.com&#10;shop.acme-corp.com" style="cursor:default;">2 websites</span></td>
-              <td><span class="td-real">4 changes</span></td>
+              <td>
+                <div class="site-list-wrap">
+                  <button class="site-list-btn" onclick="toggleSiteList(this)">2 websites ▾</button>
+                  <div class="site-list-dropdown">
+                    <div class="site-list-item">api.acme-corp.com</div>
+                    <div class="site-list-item">shop.acme-corp.com</div>
+                  </div>
+                </div>
+              </td>
               <td><span class="td-real" style="color:#606A73;">API hardening sprint Q1</span></td>
+              <td><span class="td-real">j.smith@acme.com</span></td>
               <td id="v10-promoted-by"><span class="td-real">–</span></td>
-              <td id="v10-promote-date"><span class="td-real" style="color:#606A73;font-style:italic;">Staged – not promoted</span></td>
+              <td id="v10-promote-date" class="promote-date-col"><span class="td-real" style="color:#606A73;font-style:italic;">Staged – not promoted</span></td>
               <td id="v10-status-cell"><span class="version-tag staged">In Stage</span></td>
               <td>
                 <div class="vh-row-actions" id="v10-actions">
@@ -1061,37 +1063,60 @@
                 </div>
               </td>
             </tr>
-            <!-- ── Production ───────────────────────────── -->
+          </tbody>
+
+          <!-- ── History tab body (V9, V8, V7) ─────────── -->
+          <tbody id="s08-history-body" style="display:none;">
+            <!-- Production section -->
             <tr>
-              <td colspan="9" style="background:#F9FAFB;padding:6px 16px;border-top:2px solid #E5E7EB;border-bottom:1px solid #E5E7EB;">
+              <td colspan="8" style="background:#F9FAFB;padding:6px 16px;border-top:2px solid #E5E7EB;border-bottom:1px solid #E5E7EB;">
                 <span style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;">Production</span>
               </td>
             </tr>
             <tr>
               <td><span class="td-real">V9</span></td>
               <td><span class="td-real">V9_09-03-26</span></td>
-              <td><span class="td-real" data-sites="api.acme-corp.com,shop.acme-corp.com,auth.acme-corp.com" title="api.acme-corp.com&#10;shop.acme-corp.com&#10;auth.acme-corp.com&#10;+5 more" style="cursor:default;">8 websites</span></td>
-              <td><span class="td-real">8 changes</span></td>
+              <td>
+                <div class="site-list-wrap">
+                  <button class="site-list-btn" onclick="toggleSiteList(this)">8 websites ▾</button>
+                  <div class="site-list-dropdown">
+                    <div class="site-list-item">api.acme-corp.com</div>
+                    <div class="site-list-item">shop.acme-corp.com</div>
+                    <div class="site-list-item">auth.acme-corp.com</div>
+                    <div class="site-list-item" style="color:#606A73;">+5 more</div>
+                  </div>
+                </div>
+              </td>
               <td><span class="td-real" style="color:#606A73;">–</span></td>
               <td><span class="td-real">j.smith@acme.com</span></td>
-              <td data-promote-date="2026-03-09"><span class="td-real">09/03/2026 16:22</span></td>
+              <td><span class="td-real">j.smith@acme.com</span></td>
+              <td class="promote-date-col" data-promote-date="2026-03-09"><span class="td-real">09/03/2026 16:22</span></td>
               <td id="v9-status-cell"><span class="version-tag prod">Production</span></td>
               <td></td>
             </tr>
-            <!-- ── Previous versions ─────────────────────── -->
+            <!-- Previous versions section -->
             <tr>
-              <td colspan="9" style="background:#F9FAFB;padding:6px 16px;border-top:2px solid #E5E7EB;border-bottom:1px solid #E5E7EB;">
+              <td colspan="8" style="background:#F9FAFB;padding:6px 16px;border-top:2px solid #E5E7EB;border-bottom:1px solid #E5E7EB;">
                 <span style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;">Previous versions</span>
               </td>
             </tr>
             <tr>
               <td><span class="td-real">V8</span></td>
               <td><span class="td-real">V8_09-03-26</span></td>
-              <td><span class="td-real" data-sites="api.acme-corp.com,shop.acme-corp.com" title="api.acme-corp.com&#10;shop.acme-corp.com&#10;+3 more" style="cursor:default;">5 websites</span></td>
-              <td><span class="td-real">5 changes</span></td>
+              <td>
+                <div class="site-list-wrap">
+                  <button class="site-list-btn" onclick="toggleSiteList(this)">5 websites ▾</button>
+                  <div class="site-list-dropdown">
+                    <div class="site-list-item">api.acme-corp.com</div>
+                    <div class="site-list-item">shop.acme-corp.com</div>
+                    <div class="site-list-item" style="color:#606A73;">+3 more</div>
+                  </div>
+                </div>
+              </td>
               <td><span class="td-real" style="color:#606A73;">–</span></td>
+              <td><span class="td-real">–</span></td>
               <td><span class="td-real">m.johnson@acme.com</span></td>
-              <td data-promote-date="2026-03-09"><span class="td-real">09/03/2026 12:34</span></td>
+              <td class="promote-date-col" data-promote-date="2026-03-09"><span class="td-real">09/03/2026 12:34</span></td>
               <td><span class="version-tag" style="background:#F3F4F6;color:#6B7280;">Previous</span></td>
               <td>
                 <div style="position:relative;" class="row-action-wrap">
@@ -1109,11 +1134,20 @@
             <tr>
               <td><span class="td-real">V7</span></td>
               <td><span class="td-real">V7_09-03-26</span></td>
-              <td><span class="td-real" data-sites="api.acme-corp.com,shop.acme-corp.com,auth.acme-corp.com" title="api.acme-corp.com&#10;shop.acme-corp.com&#10;auth.acme-corp.com" style="cursor:default;">3 websites</span></td>
-              <td><span class="td-real">3 changes</span></td>
+              <td>
+                <div class="site-list-wrap">
+                  <button class="site-list-btn" onclick="toggleSiteList(this)">3 websites ▾</button>
+                  <div class="site-list-dropdown">
+                    <div class="site-list-item">api.acme-corp.com</div>
+                    <div class="site-list-item">shop.acme-corp.com</div>
+                    <div class="site-list-item">auth.acme-corp.com</div>
+                  </div>
+                </div>
+              </td>
               <td><span class="td-real" style="color:#606A73;">–</span></td>
+              <td><span class="td-real">–</span></td>
               <td><span class="td-real">j.smith@acme.com</span></td>
-              <td data-promote-date="2026-03-09"><span class="td-real">09/03/2026 08:01</span></td>
+              <td class="promote-date-col" data-promote-date="2026-03-09"><span class="td-real">09/03/2026 08:01</span></td>
               <td><span class="version-tag" style="background:#F3F4F6;color:#6B7280;">Previous</span></td>
               <td>
                 <div style="position:relative;" class="row-action-wrap">
