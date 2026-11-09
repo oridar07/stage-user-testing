@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Imperva - Staging v3 Prototype</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── PROTOTYPE NAV (not part of the product) ── -->
+<nav class="proto-nav collapsed">
+  <span>Screens:</span>
+  <button data-screen="s02"     onclick="protoGo(null,'s02')">Websites</button>
+  <button data-screen="s01"     onclick="protoGo(null,'s01')">Stage configuration</button>
+  <button data-screen="s05_0"   onclick="protoGo(null,'s05_0')">Account · Dashboards</button>
+  <button                       onclick="protoGo('berliner','s05_1')">Prod · Dashboards</button>
+  <button                       onclick="protoGo('berliner','s03')">Prod · Rules</button>
+  <button                       onclick="protoGo('stg-berliner','s05_1')">Stage · Dashboards</button>
+  <button                       onclick="protoGo('stg-berliner','s05_1_1')">Stage · Rules</button>
+  <button data-screen="s05_3"   onclick="protoGo(null,'s05_3')">Security Events</button>
+  <button                       onclick="siteById('stg-berliner') ? openReview('stg-berliner') : toast('No staging site in this demo state. Use “Full demo (stage configured)”.')">Review and promote</button>
+  <span>|</span>
+  <button onclick="markReady()">Mark sites ready</button>
+  <button id="pt-prod" class="pt-toggle" onclick="toggleProdChanged()">Production changed</button>
+  <button id="pt-role" class="pt-toggle" onclick="toggleRole()">Role: admin</button>
+  <button onclick="resetDemo(false)">Reset demo (stage not configured)</button>
+  <button onclick="resetDemo(true)">Full demo (stage configured)</button>
+  <button id="proto-collapse-btn" onclick="toggleProtoNav()">▾ Screens</button>
+</nav>
+
+<!-- Every screen gets the same shell (top nav, sidebar, breadcrumb, body) from buildShells() in app.js -->
+<div id="s02"     class="screen"></div><!-- Websites (all sites, production + stage) -->
+<div id="s01"     class="screen"></div><!-- Account Management → Stage configuration -->
+<div id="s05_0"   class="screen"></div><!-- Account level → WAF Dashboards (site selector includes staging sites) -->
+<div id="s05_1"   class="screen"></div><!-- Site → Dashboards -->
+<div id="s03"     class="screen"></div><!-- Production site → Security Rules (locked) -->
+<div id="s05_1_1" class="screen"></div><!-- Staging site → Security Rules -->
+<div id="s05_3"   class="screen"></div><!-- Account level → Security Events (site selector) -->
+
+<div id="modal" class="modal-overlay"></div>
+<div id="notify" class="notify-stack"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

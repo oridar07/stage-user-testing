@@ -19,7 +19,7 @@
 
     .container {
       text-align: center;
-      max-width: 640px;
+      max-width: 1120px;
       padding: 48px 24px;
     }
 
@@ -47,12 +47,13 @@
 
     .versions {
       display: flex;
+      flex-wrap: wrap;
       gap: 20px;
       justify-content: center;
     }
 
     .version-card {
-      flex: 1;
+      flex: 1 1 220px;
       max-width: 260px;
       background: #fff;
       border: 1px solid #e5e7eb;
@@ -93,6 +94,34 @@
       color: #2563eb;
     }
 
+    .version-card.v3 {
+      border-color: #8b5cf6;
+    }
+
+    .version-card.v3:hover {
+      border-color: #7c3aed;
+      box-shadow: 0 4px 16px rgba(139, 92, 246, 0.15);
+    }
+
+    .version-card.v3 .badge {
+      background: #f5f3ff;
+      color: #7c3aed;
+    }
+
+    .version-card.v4 {
+      border-color: #10b981;
+    }
+
+    .version-card.v4:hover {
+      border-color: #059669;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
+    }
+
+    .version-card.v4 .badge {
+      background: #ecfdf5;
+      color: #059669;
+    }
+
     .version-title {
       font-size: 18px;
       font-weight: 700;
@@ -124,6 +153,18 @@
         <div class="badge">V2 · Updated</div>
         <div class="version-title">Version 2</div>
         <p class="version-desc">Revised prototype incorporating post-testing feedback.</p>
+      </a>
+
+      <a href="./v3/" class="version-card v3">
+        <div class="badge">V3 · New model</div>
+        <div class="version-title">Version 3</div>
+        <p class="version-desc">Restart of the project. Stage is a twin of each production site, set up at account level.</p>
+      </a>
+
+      <a href="./v4/" class="version-card v4">
+        <div class="badge">V4 · Latest</div>
+        <div class="version-title">Version 4</div>
+        <p class="version-desc">One Production / Stage selector across the console. The version for user testing.</p>
       </a>
     </div>
   </div>
