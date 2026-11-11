@@ -20,6 +20,8 @@
   <button                       onclick="protoGo('stg-berliner','s05_1_1')">Stage · Rules</button>
   <button data-screen="s05_3"   onclick="protoGo(null,'s05_3')">Security Events</button>
   <button data-screen="s06"     onclick="protoGo(null,'s06')">Audit Trail</button>
+  <button data-screen="s07"     onclick="protoGo(null,'s07')">SSL Certificates</button>
+  <button data-screen="s08"     onclick="protoGo(null,'s08')">Log Levels</button>
   <button                       onclick="siteById('stg-berliner') ? openReview('stg-berliner') : toast('No staging site in this demo state. Use “Full demo (stage configured)”.')">Review and promote</button>
   <span>|</span>
   <button id="pt-env" class="pt-toggle" onclick="protoToggleEnv()">Env: Production</button>
@@ -40,6 +42,8 @@
 <div id="s05_1_1" class="screen"></div><!-- Staging site → Security Rules -->
 <div id="s05_3"   class="screen"></div><!-- Account level → Security Events (sites in the selected environment) -->
 <div id="s06"     class="screen"></div><!-- Account Management → Audit Trail (actions in the selected environment) -->
+<div id="s07"     class="screen"></div><!-- Application → SSL/TLS → SSL Certificates (mixed: all sites, env selector locked) -->
+<div id="s08"     class="screen"></div><!-- Account Management → SIEM Logs → Website Log Levels (mixed: all sites, env selector locked) -->
 
 <div id="modal" class="modal-overlay"></div>
 <div id="notify" class="notify-stack"></div>

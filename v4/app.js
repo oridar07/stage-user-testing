@@ -99,6 +99,9 @@ const SEED = (configured = false) => {
   review: null,
   prodNoticeClosed: [],                           // production sites whose staging notice was closed                                   // Review and promote overlay: { stgId } while open
   guidanceSeen: false,
+  // Mixed pages (SSL Certificates, Website Log Levels): list state
+  sslTile: 'all', sslPage: 1, sslPer: 10, sslOpen: [], sslTab: 'dns', pendOpen: false,
+  logQuery: '', logPage: 1, logPer: 25, logLevels: {},
   role: 'admin', reviewFilter: 'all', reviewQuery: '', lastPromote: null,
   productionChanged: null, // set when someone edits production rules while staging exists (used in step 4)
 });
@@ -331,6 +334,10 @@ function renderSidebar(el, variant, activeItem, stageMode = false) {
         ${navItem({ label: 'Notification Policies',itemId: 'notifications', isSubItem: true })}
         ${navItem({ label: 'Audit Trail',          onclick: "showScreen('s06')", itemId: 'audit', isSubItem: true })}
         ${navItem({ label: 'Stage configuration',  onclick: "showScreen('s01')", itemId: 'stage-config', isSubItem: true })}
+        ${navItem({ icon: NAV_ICONS.securityEvents, label: 'SIEM Logs', itemId: 'siem', hasChevron: true, isExpander: true })}
+        ${navItem({ label: 'Log Configuration',     itemId: 'siem-config', isSubItem: true })}
+        ${navItem({ label: 'Accounts Log Settings', itemId: 'siem-accounts', isSubItem: true })}
+        ${navItem({ label: 'Website Log Levels',    onclick: "showScreen('s08')", itemId: 'log-levels', isSubItem: true })}
       </nav>` + footer;
 
   } else {
@@ -346,7 +353,11 @@ function renderSidebar(el, variant, activeItem, stageMode = false) {
         ${navItem({ icon: UI_ICONS.ai,            label: 'AI Application Security', itemId: 'ai-security', hasChevron: true })}
         ${navItem({ icon: NAV_ICONS.botMgmt,      label: 'Advanced Bot Protection', itemId: 'bot-mgmt', hasChevron: true })}
         ${navItem({ icon: NAV_ICONS.clientSide,   label: 'Client-Side Protection',  itemId: 'client-side' })}
-        ${navItem({ icon: NAV_ICONS.sslTls,       label: 'SSL/TLS',                 itemId: 'ssl-tls', hasChevron: true })}
+        ${navItem({ icon: NAV_ICONS.sslTls,       label: 'SSL/TLS',                 itemId: 'ssl-tls', hasChevron: true, isExpander: true })}
+        ${navItem({ label: 'SSL Certificates',            onclick: "showScreen('s07')", itemId: 'ssl-certs', isSubItem: true })}
+        ${navItem({ label: 'Client to Imperva (mTLS)',    itemId: 'ssl-mtls-client', isSubItem: true })}
+        ${navItem({ label: 'Imperva to Origin (mTLS)',    itemId: 'ssl-mtls-origin', isSubItem: true })}
+        ${navItem({ label: 'Settings',                    itemId: 'ssl-settings', isSubItem: true })}
         ${navItem({ icon: NAV_ICONS.security,     label: 'Runtime Protection',      itemId: 'runtime', hasChevron: true })}
         <div class="sidebar-section-label">Analytics</div>
         ${navItem({ icon: NAV_ICONS.attackAnalytics, label: 'Attack Analytics',        itemId: 'attack-analytics' })}
@@ -361,7 +372,9 @@ function renderSidebar(el, variant, activeItem, stageMode = false) {
 
 /* ─── BREADCRUMB: environment selector + account + site ─ */
 // [Environment: Stage ▾] | Acme Corp / stage.berliner.co.il   (the whole "Environment: tag ▾" is the trigger)
-function envSelector(site) {
+// Phase 1: some screens aren't supported in stage yet and list all sites. There the selector is locked, with a tooltip.
+const ENV_LOCK_TIP = 'This screen is not yet supported in stage. All sites are shown, production and stage.';
+function envSelector(site, locked = false) {
   if (!stageAvailable()) return '';
   const stage = inStage();
   const total = unpublished().length;
@@ -376,22 +389,22 @@ function envSelector(site) {
   const pending = total ? `<div class="menu-sep"></div>
       <div class="env-hint">${UI_ICONS.pending}<div>${total} ${total === 1 ? "change in stage isn't" : "changes in stage aren't"} published yet.${link ? `<br>${link}` : ''}</div></div>` : '';
   return `
-    <div class="menu-wrap env-select">
-      <button class="env-btn" onclick="toggleMenu(this)"><span class="env-label">Environment:</span>${envTag(STATE.env)}<span class="crumb-caret">${UI_ICONS.caret}</span></button>
+    <div class="menu-wrap env-select${locked ? ' env-select--locked has-tip tip-below' : ''}" ${locked ? `data-tip="${ENV_LOCK_TIP}"` : ''}>
+      <button class="env-btn" ${locked ? 'disabled' : 'onclick="toggleMenu(this)"'}><span class="env-label">Environment:</span>${envTag(STATE.env)}<span class="crumb-caret">${UI_ICONS.caret}</span></button>
       <div class="menu env-menu">
         <div class="menu-label">Environment</div>
         <div class="menu-item ${stage ? '' : 'selected'}" onclick="setEnv('prod')">${envTag('prod')} ${check(!stage)}</div>
         ${stageOpt}
         ${pending}
       </div>
-      ${stage && !STATE.guidanceSeen ? guidanceHtml() : ''}
+      ${stage && !locked && !STATE.guidanceSeen ? guidanceHtml() : ''}
     </div>
     <span class="crumb-divider"></span>`;
 }
 
-function renderCrumb(el, site, actions = '') {
+function renderCrumb(el, site, actions = '', locked = false) {
   const meta = `<div class="crumb-meta">Generated on: 25 Oct 26 16:25:30 IST <a onclick="toast('Refreshed.')">Refresh</a></div>`;
-  const env = envSelector(site);
+  const env = envSelector(site, locked);
   const accountLink = `<a class="crumb-link" onclick="showScreen('s02')">${STATE.account.name}</a>`;
   if (!site) { el.innerHTML = env + accountLink + (actions || meta); return; }
   // Site is plain text: switching, promote and reset all live in the environment selector
@@ -1195,6 +1208,175 @@ function renderAudit() {
     </div>`;
 }
 
+/* ─── MIXED PAGES: SSL CERTIFICATES (s07) AND WEBSITE LOG LEVELS (s08) ─ */
+// Phase 1: these screens aren't supported in stage yet. They list every site, production and stage together,
+// sorted by name, with no environment marker. Used to test whether the mix is a blocker for customers.
+const allSitesByName = () => [...STATE.sites].sort((a, b) => a.name.localeCompare(b.name));
+const pagerHtml = (page, pages, fn) => {
+  const nums = Array.from({ length: pages }, (_, i) => i + 1);
+  const btn = (label, to, off) => `<button class="pg-page" ${off ? 'disabled' : `onclick="${fn}(${to})"`}>${label}</button>`;
+  return `<div class="pg-pages">${pages > 4 ? btn('&lt;&lt;', 1, page === 1) : ''}${btn('&lt;', page - 1, page === 1)}${nums.map(n => `<button class="pg-page ${n === page ? 'active' : ''}" onclick="${fn}(${n})">${n}</button>`).join('')}${btn('&gt;', page + 1, page === pages)}${pages > 4 ? btn('&gt;&gt;', pages, page === pages) : ''}</div>`;
+};
+
+// Mock certificates, built from the demo sites so names always match
+const CERT_PLAN = {   // by production site id
+  berliner: { status: 'active',  exp: 'Jan 27 2027', type: 'RSA (Site)',   sans: ['www.berliner.co.il', 'berliner.co.il'] },
+  shop:     { status: 'active',  exp: 'Feb 03 2027', type: 'RSA (Site)',   sans: ['shop.berliner.co.il', 'checkout.berliner.co.il'] },
+  api:      { status: 'active',  exp: 'Jan 31 2027', type: 'ECDSA (Site)' },
+  auth:     { status: 'process', exp: '-',           type: 'RSA (Site)',   issue: 'Validation pending' },
+  cdn:      { status: 'soon',    exp: 'Nov 18 2026', type: 'RSA (Site)',   issue: 'Expires in 22 days', sans: ['cdn.berliner.co.il', 'static.cdn.berliner.co.il', 'img.cdn.berliner.co.il'] },
+  admin:    { status: 'expired', exp: 'Oct 02 2026', type: 'RSA (Site)',   issue: 'Certificate expired' },
+};
+const CERT_STATUS = {
+  active:  { label: 'Active',          icon: `<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#16A34A"/><path d="M4.5 8.2l2.3 2.3 4.7-4.8" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
+  process: { label: 'In process',      icon: `<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="#4B5563" stroke-width="1.6"/><path d="M8 1a7 7 0 0 1 0 14z" fill="#4B5563"/></svg>` },
+  soon:    { label: 'Will expire soon', icon: `<svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 1.5L15 14H1z" fill="#F59E0B" stroke="#F59E0B" stroke-width="1" stroke-linejoin="round"/><path d="M8 6v3.6M8 11.6v.1" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>` },
+  expired: { label: 'Expired',         icon: `<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#DC2626"/><path d="M8 4.2v4.4M8 11v.1" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>` },
+};
+function mockCerts() {
+  const hash = str => [...str].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 9000, 7) + 1000;
+  const certs = STATE.sites.map(site => {
+    const prodId = isStage(site) ? site.stageOf : site.id;
+    const plan = CERT_PLAN[prodId] || { status: 'active', exp: 'Jan 27 2027', type: 'RSA (Site)' };
+    const stage = isStage(site);
+    const sans = stage ? (prodId === 'berliner' ? [site.name, 'www.' + site.name] : [site.name]) : (plan.sans || [site.name]);
+    const status = stage ? (site.stageStatus === 'progress' ? 'process' : 'active') : plan.status;
+    const issue = stage ? (status === 'process' ? 'Validation pending' : '') : (plan.issue || '');
+    return { order: `BRL_${hash(site.id)}-${site.siteId.slice(-4)}`, site: site.name, status, sans, exp: status === 'process' ? '-' : plan.exp, type: plan.type, issue };
+  });
+  certs.push({ order: `BRL_${hash('acct1')}-0001`, site: '-', status: 'active', sans: ['*.berliner.co.il', 'berliner.co.il'], exp: 'Jan 06 2027', type: 'RSA (Account)', issue: '' });
+  certs.push({ order: `BRL_${hash('acct2')}-0002`, site: '-', status: 'active', sans: ['*.shop.berliner.co.il'], exp: 'Dec 25 2026', type: 'ECDSA (Account)', issue: '' });
+  return certs.sort((a, b) => a.order.localeCompare(b.order));
+}
+const PENDING_DOMAINS = [{ domain: '_delegate_validation.auth.berliner.co.il', type: 'RSA (Site)', method: 'CNAME', value: 'k4m2x9.ng.impervadns.net', expires: 'Dec 02 2026' }];
+
+const COPY_ICON = `<svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor"><path d="M4 1h7a1 1 0 0 1 1 1v8h-1.5V2.5H4V1zM2 3.5h7a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1z"/></svg>`;
+const CHEV_DOWN = `<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const CHEV_DOUBLE = `<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 2l4 4 4-4M2 6.5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const PG_STUB = "toast('Not part of this prototype.')";
+const pgTools = `<div class="pg-tools"><a class="pg-tool" onclick="${PG_STUB}">${UI_ICONS.search} Search</a><a class="pg-tool" onclick="${PG_STUB}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M4 6l4 4 4-4M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Download CSV</a></div>`;
+
+function renderSsl() {
+  const S = STATE;
+  const certs = mockCerts();
+  const n = k => certs.filter(c => c.status === k).length;
+  const list = S.sslTile === 'all' ? certs : certs.filter(c => c.status === S.sslTile);
+  const pages = Math.max(1, Math.ceil(list.length / S.sslPer));
+  const page = Math.min(S.sslPage, pages);
+  const rows = list.slice((page - 1) * S.sslPer, page * S.sslPer);
+  const allOpen = rows.length && rows.every(c => S.sslOpen.includes(c.order));
+  const tile = (k, label) => `<button class="pg-tile ${S.sslTile === k ? 'active' : ''}" onclick="setSslTile('${k}')">
+      <div class="pg-tile-top">${k === 'all' ? '' : CERT_STATUS[k].icon}${label}</div><div class="pg-tile-n">${k === 'all' ? certs.length : n(k)}</div></button>`;
+  const perSelect = (fn, opts, cur) => `<select class="pg-select" onchange="${fn}(this.value)">${opts.map(o => `<option ${o === cur ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
+
+  document.getElementById('body-s07').innerHTML = `
+    <h1 class="page-title">SSL Certificates</h1>
+
+    <div class="pg-card">
+      <h2 class="pg-h">Domains pending ownership validation</h2>
+      <p class="pg-sub">Add a domain's value to your DNS configuration to validate its ownership.</p>
+      <div class="pg-tabs">
+        <button class="pg-tab ${S.sslTab === 'dns' ? 'active' : ''}" onclick="STATE.sslTab='dns';renderSsl()">Validate by adding DNS records (${PENDING_DOMAINS.length})</button>
+        <button class="pg-tab ${S.sslTab === 'email' ? 'active' : ''}" onclick="STATE.sslTab='email';renderSsl()">Validate by email (0)</button>
+      </div>
+      ${pgTools}
+      <table class="pg-table">
+        <thead><tr><th class="pg-c" style="width:36px;"><span class="pg-chev">${CHEV_DOUBLE}</span></th><th style="width:290px;">Domain name</th><th style="width:100px;">Certificate type</th><th style="width:100px;">Validation method</th><th style="width:210px;">Value</th><th>Record expires</th></tr></thead>
+        <tbody>
+          ${S.sslTab === 'dns' ? PENDING_DOMAINS.map(d => `
+            <tr>
+              <td class="pg-c"><button class="pg-chev ${S.pendOpen ? 'open' : ''}" onclick="STATE.pendOpen=!STATE.pendOpen;renderSsl()">${CHEV_DOWN}</button></td>
+              <td title="${d.domain}">${d.domain} <a class="pg-copy" onclick="notify({type:'success',title:'Copied'})">${COPY_ICON}</a></td>
+              <td>${d.type}</td><td>${d.method}</td>
+              <td title="${d.value}">${d.value} <a class="pg-copy" onclick="notify({type:'success',title:'Copied'})">${COPY_ICON}</a></td>
+              <td>${d.expires}</td>
+            </tr>
+            ${S.pendOpen ? `<tr class="pg-detail"><td></td><td colspan="5">Add a ${d.method} record named <strong>${d.domain}</strong> with the value <strong>${d.value}</strong> to your DNS configuration. Validation completes once the record is detected.</td></tr>` : ''}`).join('')
+          : `<tr><td colspan="6" class="rules-empty">No domains pending email validation.</td></tr>`}
+        </tbody>
+      </table>
+      <div class="pg-foot"><div>${S.sslTab === 'dns' ? `1 - ${PENDING_DOMAINS.length} of ${PENDING_DOMAINS.length}` : '0 of 0'} &nbsp; Rows per page ${perSelect('noop', ['10'], '10')}</div>${pagerHtml(1, 1, 'noop')}</div>
+    </div>
+
+    <div class="pg-card">
+      <div class="pg-tiles">${tile('all', 'All')}${tile('active', 'Active')}${tile('process', 'In process')}${tile('soon', 'Will expire soon')}${tile('expired', 'Expired')}</div>
+      <h2 class="pg-h pg-h--lg">Certificates (${certs.length})</h2>
+      <div class="pg-toolbar"><button class="btn btn-secondary btn-sm audit-filters" onclick="${PG_STUB}">${UI_ICONS.filter} Filters</button>${pgTools}</div>
+      <table class="pg-table">
+        <thead><tr>
+          <th class="pg-c" style="width:32px;"><button class="pg-chev" onclick="toggleSslAll()" title="Expand all">${CHEV_DOUBLE}</button></th>
+          <th style="width:114px;">Name (Order ID)</th><th style="width:158px;">Website</th><th style="width:132px;">Status</th><th style="width:54px;">SANs (#)</th><th style="width:90px;">Expiration Date</th><th style="width:120px;">Certificate Type</th><th>Issues</th><th class="pg-c" style="width:44px;"></th>
+        </tr></thead>
+        <tbody>
+          ${rows.length ? rows.map(c => `
+            <tr>
+              <td class="pg-c"><button class="pg-chev ${S.sslOpen.includes(c.order) ? 'open' : ''}" onclick="toggleSslRow('${c.order}')">${CHEV_DOWN}</button></td>
+              <td title="${c.order}">${c.order}</td>
+              <td title="${c.site}">${c.site}</td>
+              <td><span class="pg-status">${CERT_STATUS[c.status].icon}${CERT_STATUS[c.status].label}</span></td>
+              <td>${c.sans.length}</td><td>${c.exp}</td><td>${c.type}</td><td class="pg-wrap">${c.issue}</td>
+              <td class="pg-c">${c.site === '-' ? '' : `<button class="kebab-btn kebab-btn--box" onclick="${PG_STUB}">&#8942;</button>`}</td>
+            </tr>
+            ${S.sslOpen.includes(c.order) ? `<tr class="pg-detail"><td></td><td colspan="8" class="pg-wrap"><div class="pg-detail-title">Subject Alternative Names (SANs)</div><ul class="san-list">${c.sans.map(d => `<li>${d}</li>`).join('')}</ul></td></tr>` : ''}`).join('')
+          : `<tr><td colspan="9" class="rules-empty">No certificates in this status.</td></tr>`}
+        </tbody>
+      </table>
+      <div class="pg-foot"><div>${list.length ? (page - 1) * S.sslPer + 1 : 0} - ${Math.min(page * S.sslPer, list.length)} of ${list.length} &nbsp; Rows per page ${perSelect('setSslPer', ['10', '25', '50'], String(S.sslPer))}</div>${pagerHtml(page, pages, 'setSslPage')}</div>
+    </div>`;
+}
+function noop() {}
+function setSslTile(k) { STATE.sslTile = k; STATE.sslPage = 1; renderSsl(); }
+function setSslPage(p) { STATE.sslPage = p; renderSsl(); }
+function setSslPer(v) { STATE.sslPer = Number(v); STATE.sslPage = 1; renderSsl(); }
+function toggleSslRow(id) { const o = STATE.sslOpen; STATE.sslOpen = o.includes(id) ? o.filter(x => x !== id) : [...o, id]; renderSsl(); }
+function toggleSslAll() {
+  const certs = mockCerts().filter(c => STATE.sslTile === 'all' || c.status === STATE.sslTile).slice((STATE.sslPage - 1) * STATE.sslPer, STATE.sslPage * STATE.sslPer).map(c => c.order);
+  STATE.sslOpen = certs.every(id => STATE.sslOpen.includes(id)) ? STATE.sslOpen.filter(id => !certs.includes(id)) : [...new Set([...STATE.sslOpen, ...certs])];
+  renderSsl();
+}
+
+// Website Log Levels (Account Management → SIEM Logs)
+const LOG_LEVELS = ['All Logs', 'Security Logs', 'Disabled'];
+const LOG_DEFAULT = { cdn: 'Security Logs', admin: 'Disabled' };   // mock
+const logLevelOf = s => STATE.logLevels[s.id] || LOG_DEFAULT[isStage(s) ? s.stageOf : s.id] || 'All Logs';
+function logRows() {
+  const q = STATE.logQuery.trim().toLowerCase();
+  const list = allSitesByName().filter(s => !q || s.name.toLowerCase().includes(q) || s.siteId.includes(q));
+  const pages = Math.max(1, Math.ceil(list.length / STATE.logPer));
+  const page = Math.min(STATE.logPage, pages);
+  return { list, pages, page, rows: list.slice((page - 1) * STATE.logPer, page * STATE.logPer) };
+}
+function logBodyHtml() {
+  const { list, pages, page, rows } = logRows();
+  return {
+    body: rows.length ? rows.map(s => `<tr><td>${s.name} (${s.siteId})</td><td><select class="log-select" onchange="STATE.logLevels['${s.id}']=this.value">${LOG_LEVELS.map(l => `<option ${l === logLevelOf(s) ? 'selected' : ''}>${l}</option>`).join('')}</select></td></tr>`).join('')
+      : `<tr><td colspan="2" class="rules-empty">No websites match.</td></tr>`,
+    foot: `<div>Showing ${list.length ? (page - 1) * STATE.logPer + 1 : 0} to ${Math.min(page * STATE.logPer, list.length)} of ${list.length} entries &nbsp; Show <select class="pg-select" onchange="setLogPer(this.value)">${['10', '25', '50'].map(o => `<option ${o === String(STATE.logPer) ? 'selected' : ''}>${o}</option>`).join('')}</select> rows</div>${pagerHtml(page, pages, 'setLogPage')}`,
+  };
+}
+function renderLogLevels() {
+  const h = logBodyHtml();
+  document.getElementById('body-s08').innerHTML = `
+    <div class="pg-card log-card">
+      <div class="log-head">
+        <div><h2 class="pg-h">Log Levels</h2><p class="pg-sub">Logs can be activated per site.</p></div>
+        <div class="log-tools">
+          <div class="rules-filter">${UI_ICONS.filter}<input type="text" placeholder="Filter by Keyword or ID" value="${STATE.logQuery}" oninput="setLogQuery(this.value)"/></div>
+          <button class="rules-icon-btn" title="Download" onclick="${PG_STUB}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M4 6l4 4 4-4M2 13h12" stroke="#606A73" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+      <table class="pg-table log-table">
+        <thead><tr><th>Name ${UI_ICONS.filter}</th><th style="width:300px;">Level</th></tr></thead>
+        <tbody id="log-body">${h.body}</tbody>
+      </table>
+      <div class="pg-foot" id="log-foot">${h.foot}</div>
+    </div>`;
+}
+function refreshLogRows() { const h = logBodyHtml(); document.getElementById('log-body').innerHTML = h.body; document.getElementById('log-foot').innerHTML = h.foot; }
+function setLogQuery(v) { STATE.logQuery = v; STATE.logPage = 1; refreshLogRows(); }
+function setLogPage(p) { STATE.logPage = p; refreshLogRows(); }
+function setLogPer(v) { STATE.logPer = Number(v); STATE.logPage = 1; refreshLogRows(); }
+
 /* ─── STAGE CONFIGURATION (s01) ───────────────── */
 // One page: settings card (enable, routing, sites, stage actions) + table of staged sites.
 const STAGE_ACTIONS = [
@@ -1530,6 +1712,9 @@ const SCREENS = {
   s05_1_1: { sidebar: 'website-mgmt', active: 'security-rules',  site: true, render: () => renderRules('body-s05_1_1') },
   s05_3:   { sidebar: 'application',  active: 'security-events', render: renderEvents },
   s06:     { sidebar: 'account-mgmt', active: 'audit',           render: renderAudit },
+  // Mixed pages: all sites (production and stage), environment selector locked
+  s07:     { sidebar: 'application',  active: 'ssl-certs',       envLocked: true, render: renderSsl },
+  s08:     { sidebar: 'account-mgmt', active: 'log-levels',      envLocked: true, render: renderLogLevels },
 };
 
 function renderScreen(id) {
@@ -1544,7 +1729,7 @@ function renderScreen(id) {
   renderNav(document.getElementById(`nav-${id}`));
   renderSidebar(document.getElementById(`sidebar-${id}`), cfg.sidebar, cfg.active, isStage(site));
   const crumb = document.getElementById(`crumb-${id}`);
-  if (crumb) renderCrumb(crumb, site, cfg.actions || '');
+  if (crumb) renderCrumb(crumb, site, cfg.actions || '', !!cfg.envLocked);
   cfg.render();
   // Review and promote overlay covers the page body while open
   const overlay = document.getElementById(`overlay-${id}`);
@@ -1577,6 +1762,7 @@ function protoGo(siteId, screen) {
 function protoToggleEnv() {
   if (!stageAvailable()) { toast('No staging site is ready. Use “Full demo (stage configured)”.'); return; }
   const id = activeScreen();
+  if (SCREENS[id].envLocked) { toast(ENV_LOCK_TIP); return; }
   if (SCREENS[id].site && !twinOf(currentSite())) { toast('This site is not supported in stage.'); return; }
   setEnv(inStage() ? 'prod' : 'stage');
 }
